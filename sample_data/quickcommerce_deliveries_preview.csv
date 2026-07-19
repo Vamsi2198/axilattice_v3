@@ -1,0 +1,201 @@
+delivery_id,order_date,city,dark_store,category,time_slot,order_type,rider_id,items,order_value,delivery_min,tip,rating
+DEL-500001,2024-01-01,Chennai,DS_Saket,Household,Morning,Instant,RIDER-0059,2,410.08,13.7,0,5
+DEL-500002,2024-01-01,Mumbai,DS_Kothrud,Grocery,Evening,Instant,RIDER-0004,8,418.66,13.2,0,5
+DEL-500003,2024-01-01,Pune,DS_HSR,Household,Evening,Instant,RIDER-0098,2,248.31,12.6,0,4
+DEL-500004,2024-01-01,Bengaluru,DS_Adyar,Snacks,Evening,Instant,RIDER-0041,5,276.42,24.3,10,4
+DEL-500005,2024-01-01,Delhi,DS_Bandra,Household,Morning,Instant,RIDER-0104,3,303.34,18.8,10,5
+DEL-500006,2024-01-01,Hyderabad,DS_Bandra,Household,Morning,Instant,RIDER-0035,2,314.62,16.3,0,1
+DEL-500007,2024-01-01,Bengaluru,DS_Bandra,Pharmacy,Afternoon,Instant,RIDER-0075,4,219.98,12.6,0,3
+DEL-500008,2024-01-01,Mumbai,DS_Adyar,Fresh,Morning,Instant,RIDER-0002,8,266.21,16.3,0,5
+DEL-500009,2024-01-01,Mumbai,DS_Saket,Personal Care,Morning,Instant,RIDER-0083,8,253.49,15.5,20,5
+DEL-500010,2024-01-01,Chennai,DS_Kothrud,Pharmacy,Night,Scheduled,RIDER-0002,6,312.25,13.9,0,5
+DEL-500011,2024-01-01,Bengaluru,DS_Bandra,Grocery,Evening,Scheduled,RIDER-0023,5,530.82,14.5,0,5
+DEL-500012,2024-01-01,Mumbai,DS_Koramangala,Beverages,Evening,Scheduled,RIDER-0096,3,327.06,18.9,0,5
+DEL-500013,2024-01-01,Pune,DS_Kothrud,Beverages,Afternoon,Instant,RIDER-0008,5,238.3,11.8,10,5
+DEL-500014,2024-01-01,Delhi,DS_Bandra,Pharmacy,Afternoon,Instant,RIDER-0043,4,407.49,15.1,0,
+DEL-500015,2024-01-01,Delhi,DS_Saket,Snacks,Evening,Instant,RIDER-0074,3,206.97,14.4,0,
+DEL-500016,2024-01-01,Delhi,DS_Bandra,Beverages,Evening,Instant,RIDER-0088,6,161.78,16.5,20,5
+DEL-500017,2024-01-01,Delhi,DS_Kothrud,Grocery,Evening,Instant,RIDER-0048,8,578.65,14.1,0,3
+DEL-500018,2024-01-01,Delhi,DS_Andheri,Household,Night,Instant,RIDER-0068,5,495.14,9.6,20,4
+DEL-500019,2024-01-01,Delhi,DS_Kothrud,Grocery,Night,Scheduled,RIDER-0060,2,661.29,14.9,0,5
+DEL-500020,2024-01-01,Pune,DS_Kothrud,Grocery,Evening,Instant,RIDER-0116,2,514.76,21.7,0,3
+DEL-500021,2024-01-01,Chennai,DS_HSR,Fresh,Night,Instant,RIDER-0024,6,221.05,12.5,20,2
+DEL-500022,2024-01-01,Mumbai,DS_HSR,Household,Evening,Instant,RIDER-0084,3,648.04,11.0,30,5
+DEL-500023,2024-01-01,Mumbai,DS_Andheri,Fresh,Evening,Instant,RIDER-0031,2,380.4,17.0,20,5
+DEL-500024,2024-01-01,Mumbai,DS_Bandra,Pharmacy,Evening,Scheduled,RIDER-0068,3,208.98,14.2,0,5
+DEL-500025,2024-01-01,Mumbai,DS_HSR,Beverages,Evening,Instant,RIDER-0026,8,305.35,14.0,30,5
+DEL-500026,2024-01-01,Pune,DS_Gachibowli,Pharmacy,Afternoon,Instant,RIDER-0032,5,,22.0,0,5
+DEL-500027,2024-01-01,Chennai,DS_Adyar,Pharmacy,Evening,Instant,RIDER-0103,2,344.61,14.0,0,5
+DEL-500028,2024-01-01,Bengaluru,DS_Andheri,Beverages,Evening,Instant,RIDER-0063,4,286.31,13.1,0,5
+DEL-500029,2024-01-01,Chennai,DS_Kothrud,Snacks,Afternoon,Scheduled,RIDER-0082,5,121.95,14.7,10,4
+DEL-500030,2024-01-01,Chennai,DS_Bandra,Grocery,Evening,Scheduled,RIDER-0042,6,686.26,17.1,20,4
+DEL-500031,2024-01-01,Hyderabad,DS_Adyar,Personal Care,Morning,Instant,RIDER-0018,5,344.06,14.7,0,5
+DEL-500032,2024-01-01,Bengaluru,DS_Kothrud,Household,Afternoon,Scheduled,RIDER-0046,4,417.24,14.6,0,5
+DEL-500033,2024-01-01,Bengaluru,DS_Koramangala,Personal Care,Night,Instant,RIDER-0017,4,375.62,11.4,0,3
+DEL-500034,2024-01-01,Bengaluru,DS_Andheri,Pharmacy,Night,Instant,RIDER-0023,3,389.37,13.1,0,5
+DEL-500035,2024-01-01,Hyderabad,DS_HSR,Fresh,Morning,Instant,RIDER-0094,5,422.11,10.1,0,5
+DEL-500036,2024-01-01,Mumbai,DS_Andheri,Snacks,Evening,Instant,RIDER-0016,4,147.16,23.4,0,5
+DEL-500037,2024-01-01,Pune,DS_Bandra,Grocery,Afternoon,Instant,RIDER-0113,3,679.55,11.5,0,5
+DEL-500038,2024-01-01,Chennai,DS_Bandra,Personal Care,Afternoon,Scheduled,RIDER-0048,4,422.48,13.9,10,3
+DEL-500039,2024-01-01,Pune,DS_Adyar,Pharmacy,Morning,Instant,RIDER-0023,4,228.41,12.6,0,3
+DEL-500040,2024-01-01,Bengaluru,DS_Gachibowli,Pharmacy,Evening,Instant,RIDER-0081,2,191.7,17.0,0,5
+DEL-500041,2024-01-01,Pune,DS_Andheri,Beverages,Evening,Instant,,2,326.85,7.4,0,4
+DEL-500042,2024-01-01,Bengaluru,DS_Saket,Beverages,Evening,Scheduled,RIDER-0068,6,294.58,10.8,20,3
+DEL-500043,2024-01-01,Pune,DS_Kothrud,Personal Care,Afternoon,Instant,RIDER-0088,2,246.44,16.5,0,5
+DEL-500044,2024-01-01,Hyderabad,DS_Saket,Household,Afternoon,Instant,RIDER-0063,4,503.34,12.1,10,5
+DEL-500045,2024-01-01,Hyderabad,DS_Andheri,Personal Care,Night,Instant,RIDER-0003,6,362.72,14.8,0,5
+DEL-500046,2024-01-01,Bengaluru,DS_Koramangala,Fresh,Evening,Instant,RIDER-0103,4,217.82,13.0,0,5
+DEL-500047,2024-01-01,Hyderabad,DS_Bandra,Fresh,Night,Instant,RIDER-0006,5,210.35,13.9,0,5
+DEL-500048,2024-01-01,Hyderabad,DS_Gachibowli,Household,Afternoon,Scheduled,RIDER-0027,2,425.97,18.3,0,4
+DEL-500049,2024-01-01,Bengaluru,DS_HSR,Grocery,Morning,Scheduled,,6,423.92,11.5,0,3
+DEL-500050,2024-01-01,Bengaluru,DS_HSR,Personal Care,Morning,Instant,RIDER-0005,4,334.17,11.6,30,5
+DEL-500051,2024-01-01,Mumbai,DS_Saket,Beverages,Night,Instant,RIDER-0036,8,167.07,14.1,20,2
+DEL-500052,2024-01-01,Mumbai,DS_Koramangala,Pharmacy,Morning,Instant,RIDER-0044,4,162.0,12.1,0,5
+DEL-500053,2024-01-01,Delhi,DS_Bandra,Grocery,Afternoon,Instant,RIDER-0105,4,349.12,14.2,0,
+DEL-500054,2024-01-01,Mumbai,DS_Koramangala,Fresh,Night,Instant,RIDER-0034,6,221.19,12.7,20,5
+DEL-500055,2024-01-01,Chennai,DS_Adyar,Snacks,Evening,Scheduled,RIDER-0077,5,162.67,10.1,0,
+DEL-500056,2024-01-01,Hyderabad,DS_Gachibowli,Household,Morning,Instant,RIDER-0096,3,410.27,12.7,0,4
+DEL-500057,2024-01-01,Delhi,DS_Kothrud,Beverages,Morning,Instant,RIDER-0008,3,181.72,10.0,0,5
+DEL-500058,2024-01-01,Pune,DS_HSR,Snacks,Evening,Instant,RIDER-0115,4,128.88,20.8,10,4
+DEL-500059,2024-01-01,Delhi,DS_Gachibowli,Snacks,Afternoon,Instant,RIDER-0108,6,137.0,16.7,0,4
+DEL-500060,2024-01-01,Bengaluru,DS_HSR,Pharmacy,Evening,Instant,RIDER-0097,3,262.03,16.6,0,5
+DEL-500061,2024-01-01,Mumbai,DS_Kothrud,Grocery,Afternoon,Instant,RIDER-0009,3,506.21,12.3,0,5
+DEL-500062,2024-01-01,Chennai,DS_HSR,Household,Evening,Instant,RIDER-0040,4,246.27,15.0,10,5
+DEL-500063,2024-01-01,Mumbai,DS_Gachibowli,Beverages,Evening,Instant,RIDER-0026,5,292.12,7.5,30,5
+DEL-500064,2024-01-01,Mumbai,DS_Gachibowli,Pharmacy,Morning,Scheduled,RIDER-0010,6,168.34,13.8,10,5
+DEL-500065,2024-01-01,Bengaluru,DS_Adyar,Grocery,Night,Scheduled,RIDER-0073,5,713.56,16.7,0,3
+DEL-500066,2024-01-01,Delhi,DS_HSR,Beverages,Evening,Instant,RIDER-0092,5,337.99,17.8,0,5
+DEL-500067,2024-01-01,Delhi,DS_Andheri,Personal Care,Evening,Instant,RIDER-0049,5,514.91,7.7,10,5
+DEL-500068,2024-01-01,Hyderabad,DS_Andheri,Fresh,Morning,Instant,RIDER-0039,3,211.47,7.7,0,5
+DEL-500069,2024-01-01,Delhi,DS_Andheri,Snacks,Evening,Instant,RIDER-0066,5,113.49,19.0,0,4
+DEL-500070,2024-01-01,Delhi,DS_Adyar,Beverages,Evening,Scheduled,RIDER-0010,3,,14.8,20,5
+DEL-500071,2024-01-01,Hyderabad,DS_Koramangala,Snacks,Evening,Instant,RIDER-0038,3,125.3,11.6,0,5
+DEL-500072,2024-01-01,Pune,DS_Adyar,Pharmacy,Evening,Instant,RIDER-0039,6,384.35,9.5,0,2
+DEL-500073,2024-01-01,Bengaluru,DS_Andheri,Grocery,Evening,Instant,RIDER-0012,2,583.65,16.0,0,
+DEL-500074,2024-01-01,Mumbai,DS_Kothrud,Snacks,Evening,Instant,RIDER-0082,5,277.87,9.7,10,5
+DEL-500075,2024-01-01,Bengaluru,DS_Adyar,Snacks,Night,Instant,,3,198.98,13.5,20,4
+DEL-500076,2024-01-01,Delhi,DS_Gachibowli,Household,Morning,Instant,RIDER-0108,2,332.83,17.0,10,5
+DEL-500077,2024-01-01,Hyderabad,DS_Saket,Personal Care,Afternoon,Instant,RIDER-0050,2,374.33,10.9,0,3
+DEL-500078,2024-01-01,Delhi,DS_Andheri,Pharmacy,Evening,Instant,RIDER-0003,3,353.89,6.4,0,4
+DEL-500079,2024-01-01,Pune,DS_Kothrud,Grocery,Morning,Instant,RIDER-0042,4,594.02,12.2,20,5
+DEL-500080,2024-01-01,Hyderabad,DS_HSR,Fresh,Morning,Instant,RIDER-0091,3,482.78,9.2,0,5
+DEL-500081,2024-01-01,Hyderabad,DS_HSR,Beverages,Evening,Instant,RIDER-0014,3,342.11,18.6,10,4
+DEL-500082,2024-01-01,Mumbai,DS_Gachibowli,Pharmacy,Night,Scheduled,RIDER-0043,3,259.09,15.8,10,4
+DEL-500083,2024-01-01,Chennai,DS_Bandra,Personal Care,Evening,Instant,RIDER-0087,2,348.38,12.5,10,4
+DEL-500084,2024-01-01,Pune,DS_Saket,Snacks,Night,Instant,,3,205.26,16.1,20,5
+DEL-500085,2024-01-01,Mumbai,DS_Andheri,Fresh,Night,Instant,RIDER-0033,6,243.81,10.8,0,5
+DEL-500086,2024-01-01,Delhi,DS_Adyar,Snacks,Afternoon,Instant,RIDER-0051,5,157.11,19.0,0,5
+DEL-500087,2024-01-01,Pune,DS_Saket,Pharmacy,Night,Instant,RIDER-0042,3,200.1,18.8,20,4
+DEL-500088,2024-01-01,Pune,DS_Bandra,Personal Care,Evening,Instant,RIDER-0013,3,401.23,7.3,0,5
+DEL-500089,2024-01-01,Hyderabad,DS_Kothrud,Household,Evening,Instant,RIDER-0110,4,549.03,9.7,0,2
+DEL-500090,2024-01-01,Mumbai,DS_Koramangala,Grocery,Evening,Instant,RIDER-0111,6,552.16,15.2,0,4
+DEL-500091,2024-01-01,Chennai,DS_HSR,Pharmacy,Evening,Instant,RIDER-0086,6,340.26,14.6,0,2
+DEL-500092,2024-01-01,Delhi,DS_Koramangala,Fresh,Evening,Instant,RIDER-0051,4,391.75,16.6,0,4
+DEL-500093,2024-01-01,Bengaluru,DS_Kothrud,Fresh,Afternoon,Instant,RIDER-0088,4,424.23,14.5,0,5
+DEL-500094,2024-01-01,Pune,DS_Andheri,Beverages,Night,Instant,RIDER-0039,5,283.4,9.1,0,2
+DEL-500095,2024-01-01,Mumbai,DS_Andheri,Snacks,Evening,Instant,RIDER-0057,5,253.07,12.5,0,5
+DEL-500096,2024-01-01,Delhi,DS_Koramangala,Fresh,Evening,Instant,RIDER-0008,5,457.69,12.8,0,
+DEL-500097,2024-01-01,Delhi,DS_Kothrud,Household,Evening,Instant,RIDER-0008,3,450.94,14.4,0,5
+DEL-500098,2024-01-01,Bengaluru,DS_Koramangala,Snacks,Night,Instant,RIDER-0071,4,120.0,20.1,0,5
+DEL-500099,2024-01-01,Delhi,DS_Bandra,Household,Afternoon,Instant,RIDER-0060,4,312.12,9.9,0,5
+DEL-500100,2024-01-01,Pune,DS_HSR,Fresh,Morning,Instant,RIDER-0067,2,429.89,12.3,0,4
+DEL-500101,2024-01-01,Delhi,DS_Adyar,Household,Afternoon,Instant,RIDER-0015,6,430.44,15.1,0,4
+DEL-500102,2024-01-01,Pune,DS_Adyar,Personal Care,Evening,Instant,RIDER-0113,4,230.2,7.5,10,5
+DEL-500103,2024-01-01,Chennai,DS_Gachibowli,Snacks,Morning,Instant,RIDER-0008,4,139.26,16.4,0,5
+DEL-500104,2024-01-01,Chennai,DS_Gachibowli,Beverages,Evening,Scheduled,RIDER-0105,6,269.88,13.9,0,2
+DEL-500105,2024-01-01,Mumbai,DS_Gachibowli,Grocery,Evening,Scheduled,RIDER-0080,8,765.67,6.0,20,5
+DEL-500106,2024-01-01,Bengaluru,DS_Bandra,Personal Care,Evening,Instant,RIDER-0009,5,544.88,13.5,0,5
+DEL-500107,2024-01-01,Delhi,DS_Koramangala,Snacks,Evening,Instant,RIDER-0003,4,231.75,15.2,0,4
+DEL-500108,2024-01-01,Chennai,DS_Gachibowli,Fresh,Morning,Instant,,2,499.41,13.0,0,4
+DEL-500109,2024-01-01,Bengaluru,DS_Saket,Fresh,Morning,Instant,RIDER-0061,2,300.58,16.2,0,4
+DEL-500110,2024-01-01,Bengaluru,DS_Gachibowli,Personal Care,Evening,Instant,RIDER-0027,4,441.23,24.2,10,3
+DEL-500111,2024-01-01,Hyderabad,DS_HSR,Fresh,Night,Instant,RIDER-0026,4,474.48,18.3,20,5
+DEL-500112,2024-01-01,Bengaluru,DS_Kothrud,Beverages,Evening,Instant,RIDER-0037,2,216.18,17.2,0,4
+DEL-500113,2024-01-01,Hyderabad,DS_Bandra,Fresh,Morning,Instant,RIDER-0058,8,243.74,16.4,0,3
+DEL-500114,2024-01-01,Chennai,DS_Saket,Fresh,Evening,Instant,RIDER-0044,4,396.59,11.3,0,5
+DEL-500115,2024-01-01,Delhi,DS_Andheri,Grocery,Afternoon,Instant,RIDER-0055,4,334.8,8.8,0,5
+DEL-500116,2024-01-01,Chennai,DS_Koramangala,Household,Evening,Instant,RIDER-0082,6,518.79,14.5,0,3
+DEL-500117,2024-01-01,Chennai,DS_Bandra,Household,Evening,Instant,,3,461.2,9.4,10,5
+DEL-500118,2024-01-01,Pune,DS_Adyar,Snacks,Evening,Scheduled,RIDER-0017,3,205.26,13.7,0,5
+DEL-500119,2024-01-01,Delhi,DS_Bandra,Snacks,Evening,Instant,RIDER-0115,5,193.02,10.1,0,5
+DEL-500120,2024-01-01,Chennai,DS_Adyar,Personal Care,Afternoon,Instant,RIDER-0039,4,244.89,7.6,0,3
+DEL-500121,2024-01-01,Hyderabad,DS_Gachibowli,Snacks,Afternoon,Instant,RIDER-0023,6,261.78,19.6,0,5
+DEL-500122,2024-01-01,Hyderabad,DS_Kothrud,Beverages,Morning,Instant,RIDER-0006,4,177.45,10.4,0,5
+DEL-500123,2024-01-01,Chennai,DS_Adyar,Household,Evening,Instant,,5,444.72,10.0,0,4
+DEL-500124,2024-01-01,Bengaluru,DS_Andheri,Household,Afternoon,Instant,RIDER-0017,3,542.84,11.3,0,5
+DEL-500125,2024-01-01,Hyderabad,DS_Kothrud,Household,Evening,Scheduled,RIDER-0105,4,321.85,15.6,0,5
+DEL-500126,2024-01-01,Delhi,DS_Saket,Snacks,Evening,Instant,RIDER-0062,5,225.57,18.8,0,5
+DEL-500127,2024-01-01,Hyderabad,DS_HSR,Beverages,Afternoon,Instant,RIDER-0046,5,148.72,10.1,10,2
+DEL-500128,2024-01-01,Bengaluru,DS_Kothrud,Personal Care,Evening,Instant,RIDER-0097,4,436.55,10.8,10,5
+DEL-500129,2024-01-01,Pune,DS_Adyar,Snacks,Night,Instant,RIDER-0043,2,284.28,17.8,0,3
+DEL-500130,2024-01-01,Chennai,DS_Gachibowli,Pharmacy,Afternoon,Instant,RIDER-0093,5,157.87,18.5,0,4
+DEL-500131,2024-01-01,Chennai,DS_Kothrud,Beverages,Night,Instant,RIDER-0040,4,228.96,14.5,20,5
+DEL-500132,2024-01-01,Mumbai,DS_Andheri,Pharmacy,Night,Instant,RIDER-0016,3,217.31,12.1,10,1
+DEL-500133,2024-01-01,Pune,DS_Koramangala,Household,Evening,Instant,RIDER-0094,3,381.62,17.9,0,4
+DEL-500134,2024-01-01,Bengaluru,DS_Koramangala,Fresh,Afternoon,Instant,,2,318.37,15.4,0,5
+DEL-500135,2024-01-01,Bengaluru,DS_Bandra,Snacks,Morning,Instant,RIDER-0005,2,278.05,18.3,20,5
+DEL-500136,2024-01-01,Mumbai,DS_Andheri,Grocery,Morning,Instant,RIDER-0087,4,470.39,11.3,0,5
+DEL-500137,2024-01-01,Chennai,DS_Andheri,Grocery,Evening,Instant,RIDER-0086,3,293.54,18.4,20,5
+DEL-500138,2024-01-01,Hyderabad,DS_Saket,Personal Care,Night,Instant,RIDER-0040,4,483.11,11.7,0,3
+DEL-500139,2024-01-01,Hyderabad,DS_Gachibowli,Snacks,Evening,Instant,RIDER-0032,3,164.41,9.1,10,5
+DEL-500140,2024-01-01,Delhi,DS_Adyar,Fresh,Evening,Instant,RIDER-0019,3,388.92,12.4,0,5
+DEL-500141,2024-01-01,Chennai,DS_Bandra,Grocery,Night,Instant,RIDER-0001,3,506.94,6.0,0,5
+DEL-500142,2024-01-01,Pune,DS_Adyar,Grocery,Evening,Instant,,5,423.23,17.9,10,4
+DEL-500143,2024-01-01,Bengaluru,DS_HSR,Personal Care,Afternoon,Instant,RIDER-0044,2,349.11,14.3,10,
+DEL-500144,2024-01-01,Delhi,DS_Gachibowli,Household,Morning,Instant,RIDER-0087,4,352.5,8.5,10,5
+DEL-500145,2024-01-01,Delhi,DS_Gachibowli,Beverages,Morning,Instant,RIDER-0064,2,236.67,19.8,20,5
+DEL-500146,2024-01-01,Pune,DS_Kothrud,Snacks,Evening,Instant,RIDER-0027,3,173.68,22.2,20,2
+DEL-500147,2024-01-01,Pune,DS_Andheri,Beverages,Afternoon,Instant,RIDER-0095,3,317.09,18.6,0,5
+DEL-500148,2024-01-01,Bengaluru,DS_HSR,Beverages,Afternoon,Instant,RIDER-0058,3,281.73,12.4,0,2
+DEL-500149,2024-01-01,Chennai,DS_Saket,Pharmacy,Morning,Instant,RIDER-0060,3,,15.1,0,1
+DEL-500150,2024-01-01,Delhi,DS_Adyar,Personal Care,Night,Scheduled,RIDER-0047,3,525.04,13.3,0,4
+DEL-500151,2024-01-01,Mumbai,DS_Andheri,Grocery,Night,Instant,RIDER-0074,3,394.79,19.3,0,5
+DEL-500152,2024-01-01,Hyderabad,DS_Adyar,Grocery,Afternoon,Instant,RIDER-0090,3,594.74,13.8,0,4
+DEL-500153,2024-01-01,Hyderabad,DS_Saket,Pharmacy,Evening,Instant,RIDER-0000,3,181.74,10.4,0,3
+DEL-500154,2024-01-01,Chennai,DS_Bandra,Household,Evening,Instant,RIDER-0034,2,344.45,21.4,0,5
+DEL-500155,2024-01-01,Pune,DS_Koramangala,Beverages,Night,Instant,RIDER-0072,3,135.56,19.5,0,4
+DEL-500156,2024-01-01,Chennai,DS_Koramangala,Grocery,Evening,Instant,RIDER-0096,2,494.48,11.3,0,4
+DEL-500157,2024-01-01,Mumbai,DS_Saket,Personal Care,Afternoon,Instant,RIDER-0115,5,549.87,16.0,0,5
+DEL-500158,2024-01-01,Bengaluru,DS_Saket,Fresh,Night,Scheduled,RIDER-0023,5,281.88,22.4,0,5
+DEL-500159,2024-01-01,Delhi,DS_Koramangala,Beverages,Afternoon,Instant,RIDER-0040,4,221.73,17.0,10,5
+DEL-500160,2024-01-01,Pune,DS_Andheri,Snacks,Night,Instant,,5,121.27,15.2,20,4
+DEL-500161,2024-01-01,Pune,DS_Andheri,Snacks,Morning,Instant,RIDER-0116,8,159.22,9.9,0,5
+DEL-500162,2024-01-01,Chennai,DS_Kothrud,Household,Evening,Instant,RIDER-0014,3,474.97,19.5,10,4
+DEL-500163,2024-01-01,Delhi,DS_Kothrud,Personal Care,Evening,Instant,RIDER-0002,4,512.7,10.6,0,5
+DEL-500164,2024-01-01,Chennai,DS_HSR,Grocery,Evening,Instant,RIDER-0107,3,646.76,10.6,20,5
+DEL-500165,2024-01-01,Delhi,DS_Andheri,Pharmacy,Afternoon,Scheduled,RIDER-0033,6,363.55,14.7,20,5
+DEL-500166,2024-01-01,Pune,DS_HSR,Pharmacy,Afternoon,Instant,RIDER-0056,6,368.23,7.5,0,4
+DEL-500167,2024-01-01,Mumbai,DS_Bandra,Beverages,Afternoon,Instant,RIDER-0089,2,267.61,17.2,0,5
+DEL-500168,2024-01-01,Mumbai,DS_Koramangala,Grocery,Morning,Instant,RIDER-0083,6,535.18,20.8,0,5
+DEL-500169,2024-01-01,Mumbai,DS_Koramangala,Snacks,Afternoon,Instant,RIDER-0093,5,138.79,14.2,0,4
+DEL-500170,2024-01-01,Mumbai,DS_HSR,Personal Care,Evening,Instant,RIDER-0068,3,,12.6,0,5
+DEL-500171,2024-01-01,Hyderabad,DS_Bandra,Fresh,Night,Scheduled,RIDER-0016,2,271.44,10.6,0,2
+DEL-500172,2024-01-01,Mumbai,DS_Andheri,Pharmacy,Evening,Instant,RIDER-0032,4,336.88,13.2,0,3
+DEL-500173,2024-01-01,Pune,DS_Koramangala,Snacks,Night,Instant,RIDER-0059,6,188.04,12.6,20,5
+DEL-500174,2024-01-01,Delhi,DS_Gachibowli,Household,Evening,Instant,RIDER-0001,3,582.69,10.6,0,2
+DEL-500175,2024-01-01,Pune,DS_Kothrud,Beverages,Night,Instant,RIDER-0095,5,149.89,12.0,10,3
+DEL-500176,2024-01-01,Chennai,DS_Adyar,Pharmacy,Morning,Instant,RIDER-0076,4,402.58,16.4,0,5
+DEL-500177,2024-01-01,Bengaluru,DS_Andheri,Grocery,Evening,Instant,RIDER-0064,5,305.05,13.9,10,4
+DEL-500178,2024-01-01,Bengaluru,DS_Adyar,Pharmacy,Night,Instant,RIDER-0056,2,156.05,17.0,0,3
+DEL-500179,2024-01-01,Hyderabad,DS_Andheri,Snacks,Night,Instant,RIDER-0117,3,239.64,16.9,30,5
+DEL-500180,2024-01-01,Bengaluru,DS_Andheri,Household,Evening,Instant,RIDER-0041,6,271.18,11.5,0,4
+DEL-500181,2024-01-01,Chennai,DS_Saket,Pharmacy,Afternoon,Scheduled,RIDER-0017,6,302.42,17.9,10,5
+DEL-500182,2024-01-01,Mumbai,DS_HSR,Pharmacy,Evening,Instant,RIDER-0020,6,188.92,12.2,0,5
+DEL-500183,2024-01-01,Pune,DS_Koramangala,Household,Evening,Instant,RIDER-0040,3,330.84,11.2,20,5
+DEL-500184,2024-01-01,Mumbai,DS_Saket,Fresh,Night,Instant,RIDER-0080,2,248.03,13.4,0,4
+DEL-500185,2024-01-01,Mumbai,DS_Koramangala,Household,Morning,Instant,RIDER-0044,5,262.26,18.5,0,4
+DEL-500186,2024-01-01,Hyderabad,DS_Gachibowli,Beverages,Morning,Instant,RIDER-0118,2,312.34,10.2,10,5
+DEL-500187,2024-01-01,Mumbai,DS_Gachibowli,Fresh,Morning,Instant,RIDER-0080,4,266.79,18.6,20,5
+DEL-500188,2024-01-01,Mumbai,DS_Adyar,Fresh,Morning,Scheduled,RIDER-0015,3,342.1,7.7,0,3
+DEL-500189,2024-01-01,Chennai,DS_Koramangala,Grocery,Evening,Instant,RIDER-0073,3,546.91,15.7,20,3
+DEL-500190,2024-01-01,Hyderabad,DS_Andheri,Household,Afternoon,Instant,RIDER-0086,3,348.48,17.1,0,4
+DEL-500191,2024-01-01,Pune,DS_HSR,Personal Care,Morning,Instant,RIDER-0111,6,519.79,11.4,10,4
+DEL-500192,2024-01-01,Delhi,DS_Kothrud,Beverages,Afternoon,Instant,RIDER-0063,3,266.59,17.6,0,5
+DEL-500193,2024-01-01,Pune,DS_Saket,Household,Night,Instant,RIDER-0041,3,416.99,21.2,0,4
+DEL-500194,2024-01-01,Bengaluru,DS_Bandra,Grocery,Afternoon,Instant,RIDER-0040,4,652.39,14.9,0,3
+DEL-500195,2024-01-01,Mumbai,DS_Adyar,Fresh,Night,Instant,RIDER-0070,4,500.22,12.6,10,4
+DEL-500196,2024-01-01,Chennai,DS_Bandra,Beverages,Afternoon,Scheduled,RIDER-0071,3,223.55,13.2,20,5
+DEL-500197,2024-01-01,Pune,DS_Kothrud,Fresh,Morning,Instant,RIDER-0014,3,399.62,12.9,0,4
+DEL-500198,2024-01-01,Hyderabad,DS_HSR,Fresh,Night,Instant,RIDER-0006,4,319.06,12.6,10,1
+DEL-500199,2024-01-01,Mumbai,DS_Gachibowli,Personal Care,Night,Instant,RIDER-0035,3,218.96,13.0,0,5
+DEL-500200,2024-01-01,Bengaluru,DS_Saket,Household,Evening,Instant,RIDER-0058,6,409.45,16.2,0,5

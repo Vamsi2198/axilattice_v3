@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: axilattice
+    env: python
+    buildCommand: pip install -r backend/requirements.txt && cd frontend && npm install && npm run build
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false          # set manually in Render dashboard
+      - key: DUCKDB_PATH
+        value: /opt/render/project/data/axilattice.duckdb
+    disk:
+      name: cube-data
+      mountPath: /opt/render/project/data
+      sizeGB: 5

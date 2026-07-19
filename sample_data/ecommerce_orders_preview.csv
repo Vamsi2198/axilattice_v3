@@ -1,0 +1,201 @@
+order_id,order_date,region,category,channel,segment,payment,city,quantity,revenue,margin_pct,discount,ship_days
+ORD-100001,2024-01-01,South,Apparel,Web,New,UPI,,1,1791.62,0.2842,0.0,3
+ORD-100002,2024-01-01,East,Apparel,iOS App,New,COD,City_020,2,3715.17,0.3018,743.03,2
+ORD-100003,2024-01-01,East,Electronics,Android App,Returning,Wallet,City_048,1,8463.85,0.1262,1269.58,2
+ORD-100004,2024-01-01,West,Electronics,Android App,Returning,Card,City_058,2,14617.35,0.1138,0.0,2
+ORD-100005,2024-01-01,North,Books,Web,Returning,Card,City_071,1,611.82,0.2436,0.0,4
+ORD-100006,2024-01-01,Central,Sports,Android App,New,UPI,City_050,3,6623.98,0.2571,0.0,3
+ORD-100007,2024-01-01,East,Home,Web,VIP,UPI,City_011,2,9171.52,0.2411,0.0,3
+ORD-100008,2024-01-01,East,Home,Marketplace,Returning,Card,City_014,2,7574.19,0.2539,757.42,1
+ORD-100009,2024-01-01,Central,Home,Marketplace,Returning,UPI,City_013,3,6980.44,0.2956,698.04,1
+ORD-100010,2024-01-01,East,Electronics,iOS App,Returning,Card,City_046,3,35964.75,0.1108,0.0,5
+ORD-100011,2024-01-01,North,Sports,Android App,New,UPI,City_070,1,3079.79,0.3128,615.96,5
+ORD-100012,2024-01-01,South,Books,Android App,New,UPI,,1,409.65,0.1779,20.48,3
+ORD-100013,2024-01-01,North,Electronics,Android App,New,Card,City_062,1,8084.71,0.1409,404.24,2
+ORD-100014,2024-01-01,North,Beauty,iOS App,New,COD,City_006,2,3166.73,0.3525,158.34,2
+ORD-100015,2024-01-01,East,Beauty,Web,Returning,COD,City_009,1,1361.58,0.4285,0.0,7
+ORD-100016,2024-01-01,Central,Apparel,iOS App,Returning,COD,City_007,1,1010.17,0.3347,202.03,4
+ORD-100017,2024-01-01,West,Books,Android App,New,Card,City_007,1,534.37,0.2418,0.0,3
+ORD-100018,2024-01-01,Central,Electronics,Android App,New,Card,City_030,1,9242.0,0.1233,462.1,1
+ORD-100019,2024-01-01,South,Home,Web,Returning,Card,,1,3685.92,0.2752,737.18,5
+ORD-100020,2024-01-01,North,Sports,Web,New,Wallet,City_008,3,8282.9,0.2589,1242.43,3
+ORD-100021,2024-01-01,North,Sports,Web,Returning,Wallet,City_017,1,3809.66,0.3291,0.0,2
+ORD-100022,2024-01-01,Central,Sports,iOS App,VIP,COD,City_011,2,4917.29,0.2453,0.0,1
+ORD-100023,2024-01-01,West,Sports,Web,New,COD,City_019,1,2773.91,0.3099,0.0,1
+ORD-100024,2024-01-01,Central,Home,Web,New,Card,City_071,3,7560.68,0.2935,0.0,5
+ORD-100025,2024-01-01,Central,Electronics,Web,VIP,COD,City_052,2,17745.89,0.1349,0.0,4
+ORD-100026,2024-01-01,North,Beauty,Web,Returning,COD,City_028,1,952.12,0.3911,142.82,7
+ORD-100027,2024-01-01,Central,Sports,Web,New,COD,City_033,1,2637.65,0.2719,0.0,2
+ORD-100028,2024-01-01,East,Beauty,Android App,New,Card,City_055,1,1408.56,0.4265,140.86,3
+ORD-100029,2024-01-01,West,Home,Android App,Returning,Card,City_038,1,3360.46,0.2605,336.05,3
+ORD-100030,2024-01-01,West,Apparel,Android App,New,UPI,City_000,1,1372.35,0.39,137.23,2
+ORD-100031,2024-01-01,West,Books,Web,New,UPI,City_079,1,630.08,0.2421,63.01,2
+ORD-100032,2024-01-01,East,Electronics,iOS App,VIP,UPI,City_049,1,8141.88,0.1275,0.0,4
+ORD-100033,2024-01-01,North,Books,iOS App,New,Card,City_015,1,832.25,0.2347,166.45,3
+ORD-100034,2024-01-01,West,Sports,iOS App,VIP,UPI,City_020,2,4459.42,0.2711,0.0,3
+ORD-100035,2024-01-01,South,Electronics,Android App,New,Card,City_069,1,6847.44,0.1144,0.0,2
+ORD-100036,2024-01-01,North,Beauty,iOS App,Returning,Wallet,City_002,3,4226.83,0.3999,0.0,2
+ORD-100037,2024-01-01,South,Books,Android App,Returning,COD,City_062,1,552.8,0.1786,0.0,3
+ORD-100038,2024-01-01,North,Sports,iOS App,VIP,UPI,City_003,1,2880.08,0.344,0.0,2
+ORD-100039,2024-01-01,Central,Home,Android App,Returning,Card,City_010,1,3134.25,0.2298,626.85,2
+ORD-100040,2024-01-01,North,Apparel,Web,New,Card,City_016,1,1684.96,0.4127,84.25,2
+ORD-100041,2024-01-01,West,Apparel,Marketplace,New,Card,City_039,1,2163.7,0.3325,432.74,1
+ORD-100042,2024-01-01,West,Home,Android App,Returning,Card,City_072,2,5431.93,0.272,0.0,3
+ORD-100043,2024-01-01,North,Home,Android App,Returning,UPI,City_055,1,4090.46,0.2969,409.05,5
+ORD-100044,2024-01-01,East,Home,Android App,Returning,Card,City_057,1,3609.04,0.2924,0.0,1
+ORD-100045,2024-01-01,West,Home,Web,Returning,COD,City_071,1,3927.29,0.2336,392.73,2
+ORD-100046,2024-01-01,East,Electronics,Web,New,UPI,City_039,2,17920.48,0.1226,0.0,7
+ORD-100047,2024-01-01,South,Apparel,Web,New,Card,City_068,4,8518.42,0.3068,851.84,2
+ORD-100048,2024-01-01,Central,Apparel,Web,New,Card,City_068,1,1053.88,0.2876,0.0,5
+ORD-100049,2024-01-01,North,Home,iOS App,New,Card,City_006,1,5004.31,0.2368,0.0,2
+ORD-100050,2024-01-01,West,Home,Web,New,UPI,City_053,2,7220.27,0.2493,361.01,2
+ORD-100051,2024-01-01,South,Sports,Web,VIP,Card,City_026,2,4249.21,0.2497,0.0,3
+ORD-100052,2024-01-01,East,Electronics,Web,Returning,UPI,City_058,1,8072.76,0.1087,807.28,3
+ORD-100053,2024-01-01,North,Apparel,Marketplace,Returning,Card,City_021,2,4823.41,0.3954,964.68,2
+ORD-100054,2024-01-01,South,Sports,iOS App,New,Card,City_055,2,5388.48,0.2431,0.0,3
+ORD-100055,2024-01-01,West,Home,iOS App,Returning,Card,City_066,2,7725.61,0.2443,386.28,3
+ORD-100056,2024-01-01,South,Books,Web,New,UPI,City_063,1,748.9,0.2476,37.45,2
+ORD-100057,2024-01-01,South,Sports,Android App,New,COD,City_059,1,1995.14,0.2834,199.51,3
+ORD-100058,2024-01-01,Central,Beauty,Android App,Returning,Card,City_077,2,1819.21,0.3882,0.0,2
+ORD-100059,2024-01-01,Central,Books,Android App,Returning,UPI,City_065,2,871.94,0.2185,43.6,2
+ORD-100060,2024-01-01,West,Apparel,Android App,New,COD,City_053,1,2027.27,0.3174,0.0,3
+ORD-100061,2024-01-01,Central,Beauty,iOS App,New,UPI,City_069,1,1028.28,0.4821,205.66,2
+ORD-100062,2024-01-01,South,Beauty,Android App,Returning,Card,City_019,1,689.62,0.4204,34.48,5
+ORD-100063,2024-01-01,East,Books,Web,VIP,Wallet,City_009,1,833.96,0.2058,83.4,3
+ORD-100064,2024-01-01,South,Home,Android App,VIP,UPI,City_069,1,2393.26,0.2947,478.65,7
+ORD-100065,2024-01-01,East,Electronics,iOS App,Returning,Wallet,City_005,1,6912.3,0.1132,345.62,2
+ORD-100066,2024-01-01,North,Sports,Android App,Returning,Card,City_074,1,2945.68,0.2705,0.0,1
+ORD-100067,2024-01-01,North,Beauty,Marketplace,VIP,Card,City_054,2,2325.11,0.3868,465.02,5
+ORD-100068,2024-01-01,South,Books,Web,VIP,UPI,City_035,1,718.05,0.2445,143.61,5
+ORD-100069,2024-01-01,West,Apparel,Android App,New,UPI,City_079,1,1990.82,0.3874,199.08,1
+ORD-100070,2024-01-01,West,Electronics,iOS App,Returning,Card,City_037,1,7580.02,0.1056,758.0,5
+ORD-100071,2024-01-01,North,Beauty,Marketplace,New,COD,City_014,1,858.09,0.4627,0.0,3
+ORD-100072,2024-01-01,East,Electronics,Android App,New,UPI,City_058,1,11447.28,0.1086,0.0,3
+ORD-100073,2024-01-01,East,Sports,Web,Returning,UPI,City_059,3,7219.34,0.289,0.0,5
+ORD-100074,2024-01-01,Central,Apparel,iOS App,New,Wallet,City_069,1,1756.21,0.3016,87.81,1
+ORD-100075,2024-01-01,North,Home,Web,New,Card,City_046,1,4531.11,0.285,906.22,2
+ORD-100076,2024-01-01,Central,Beauty,Web,New,UPI,City_002,1,709.43,0.5021,70.94,2
+ORD-100077,2024-01-01,West,Apparel,Web,New,Wallet,City_000,1,2249.89,0.4183,112.49,4
+ORD-100078,2024-01-01,South,Apparel,iOS App,New,Card,City_016,2,3845.74,0.3844,192.29,4
+ORD-100079,2024-01-01,Central,Electronics,Android App,VIP,UPI,City_038,1,9348.76,0.0989,467.44,2
+ORD-100080,2024-01-01,North,Electronics,Web,New,Card,City_079,2,22110.53,0.1116,4422.11,3
+ORD-100081,2024-01-01,West,Books,Android App,Returning,UPI,City_027,1,654.22,0.2124,98.13,2
+ORD-100082,2024-01-01,South,Apparel,Android App,Returning,Card,City_010,1,1381.67,0.3834,207.25,3
+ORD-100083,2024-01-01,North,Home,Android App,VIP,UPI,City_006,4,17207.61,0.2634,860.38,2
+ORD-100084,2024-01-01,Central,Home,Web,New,Card,,2,7076.78,0.3157,707.68,3
+ORD-100085,2024-01-01,South,Apparel,Web,Returning,Wallet,City_044,1,2356.03,0.3593,117.8,1
+ORD-100086,2024-01-01,North,Beauty,iOS App,New,Card,City_041,2,2501.88,0.3503,0.0,1
+ORD-100087,2024-01-01,West,Beauty,Android App,New,Card,City_065,1,855.8,0.3836,85.58,2
+ORD-100088,2024-01-01,East,Electronics,Web,VIP,COD,City_032,1,7330.3,0.1199,366.52,1
+ORD-100089,2024-01-01,West,Home,Web,Returning,Card,City_002,1,2172.97,0.2591,108.65,2
+ORD-100090,2024-01-01,Central,Apparel,Android App,Returning,COD,City_046,1,1859.24,0.3141,92.96,3
+ORD-100091,2024-01-01,South,Apparel,Web,Returning,UPI,City_024,3,5100.64,0.3818,765.1,4
+ORD-100092,2024-01-01,East,Books,Web,VIP,UPI,City_059,2,1490.62,0.2155,298.12,3
+ORD-100093,2024-01-01,East,Apparel,iOS App,Returning,UPI,City_035,1,1873.79,0.2904,93.69,1
+ORD-100094,2024-01-01,Central,Electronics,Android App,Returning,UPI,City_070,4,33109.06,0.098,6621.81,3
+ORD-100095,2024-01-01,Central,Beauty,Web,VIP,Card,City_010,1,623.8,0.3776,31.19,2
+ORD-100096,2024-01-01,South,Beauty,Android App,Returning,Card,City_042,1,727.85,0.45,0.0,3
+ORD-100097,2024-01-01,South,Sports,Android App,VIP,Card,City_050,1,2870.84,0.2502,143.54,3
+ORD-100098,2024-01-01,Central,Books,Marketplace,New,UPI,City_065,1,419.68,0.1919,0.0,5
+ORD-100099,2024-01-01,North,Electronics,iOS App,Returning,UPI,City_067,1,9544.5,0.1328,0.0,2
+ORD-100100,2024-01-01,West,Apparel,Android App,New,Card,City_030,4,7305.66,0.3853,730.57,2
+ORD-100101,2024-01-01,Central,Apparel,iOS App,VIP,Wallet,City_059,2,3584.7,0.3504,179.24,1
+ORD-100102,2024-01-01,North,Beauty,Android App,Returning,Card,City_066,3,3076.44,0.4642,0.0,5
+ORD-100103,2024-01-01,North,Beauty,Android App,VIP,UPI,City_050,1,986.15,0.5031,0.0,1
+ORD-100104,2024-01-01,West,Apparel,Web,VIP,UPI,City_017,2,3331.94,0.3661,666.39,1
+ORD-100105,2024-01-01,East,Beauty,Web,New,Card,City_006,1,1198.89,0.4406,0.0,4
+ORD-100106,2024-01-01,East,Books,Web,New,UPI,City_030,1,502.83,0.2348,25.14,2
+ORD-100107,2024-01-01,East,Electronics,iOS App,Returning,UPI,City_047,1,6651.31,0.1338,0.0,3
+ORD-100108,2024-01-01,South,Electronics,iOS App,New,UPI,City_059,4,35189.04,0.1047,0.0,3
+ORD-100109,2024-01-01,West,Electronics,Web,New,Card,City_069,1,5551.1,0.1271,0.0,5
+ORD-100110,2024-01-01,West,Beauty,Android App,Returning,COD,City_049,1,710.31,0.4523,0.0,4
+ORD-100111,2024-01-01,South,Apparel,iOS App,New,Card,City_037,1,2019.3,0.3397,201.93,2
+ORD-100112,2024-01-01,Central,Home,Android App,Returning,Card,City_051,1,3227.56,0.3001,645.51,1
+ORD-100113,2024-01-01,North,Books,iOS App,New,UPI,City_077,1,669.86,0.2086,33.49,1
+ORD-100114,2024-01-01,South,Electronics,Web,New,UPI,City_071,1,10561.04,0.1298,0.0,3
+ORD-100115,2024-01-01,North,Electronics,iOS App,VIP,UPI,City_011,2,28096.77,0.1434,2809.68,3
+ORD-100116,2024-01-01,North,Books,Marketplace,Returning,COD,City_065,1,917.13,0.2457,0.0,2
+ORD-100117,2024-01-01,Central,Apparel,Android App,New,Card,City_061,1,1783.32,0.3953,0.0,7
+ORD-100118,2024-01-01,South,Sports,Android App,New,Wallet,City_055,1,3138.6,0.3398,156.93,2
+ORD-100119,2024-01-01,Central,Sports,Android App,Returning,Card,City_070,1,2184.03,0.3137,0.0,3
+ORD-100120,2024-01-01,East,Sports,Web,VIP,Card,City_003,1,3600.91,0.3325,0.0,2
+ORD-100121,2024-01-01,Central,Sports,Web,VIP,UPI,City_051,1,1442.08,0.2472,72.1,2
+ORD-100122,2024-01-01,West,Books,Marketplace,New,Card,City_047,1,383.29,0.1973,0.0,2
+ORD-100123,2024-01-01,Central,Beauty,Web,Returning,Card,City_041,3,2746.92,0.3679,0.0,7
+ORD-100124,2024-01-01,North,Beauty,iOS App,,Card,City_045,1,1022.52,0.4364,153.38,3
+ORD-100125,2024-01-01,North,Home,Android App,Returning,Card,City_051,1,4198.16,0.2646,0.0,2
+ORD-100126,2024-01-01,East,Sports,Web,VIP,Card,City_043,1,2523.64,0.2573,252.36,2
+ORD-100127,2024-01-01,West,Sports,iOS App,Returning,UPI,City_041,3,5980.85,0.2872,598.09,4
+ORD-100128,2024-01-01,East,Sports,Web,Returning,Card,,4,11706.73,0.3356,1170.67,3
+ORD-100129,2024-01-01,West,Sports,iOS App,Returning,UPI,City_021,1,2602.43,0.333,0.0,4
+ORD-100130,2024-01-01,North,Beauty,Web,New,UPI,City_052,1,1285.96,0.4152,192.89,3
+ORD-100131,2024-01-01,Central,Beauty,iOS App,New,Card,City_068,1,720.48,0.4657,72.05,3
+ORD-100132,2024-01-01,South,Sports,Web,VIP,Wallet,City_036,2,5679.21,0.2987,283.96,3
+ORD-100133,2024-01-01,East,Sports,iOS App,VIP,COD,City_018,1,2379.54,0.3257,0.0,2
+ORD-100134,2024-01-01,East,Sports,Android App,New,UPI,City_075,1,1941.81,0.3486,0.0,2
+ORD-100135,2024-01-01,West,Apparel,Web,Returning,Wallet,City_052,2,4265.31,0.3466,426.53,4
+ORD-100136,2024-01-01,West,Books,iOS App,Returning,UPI,City_004,3,1221.48,0.2536,0.0,5
+ORD-100137,2024-01-02,Central,Home,Android App,New,UPI,City_013,3,7177.19,0.2749,717.72,3
+ORD-100138,2024-01-02,South,Electronics,Web,Returning,UPI,City_023,1,7955.82,0.1102,795.58,1
+ORD-100139,2024-01-02,South,Home,Web,Returning,Card,City_017,1,4336.25,0.2248,0.0,2
+ORD-100140,2024-01-02,East,Home,Android App,Returning,Card,City_015,1,2857.54,0.3008,571.51,5
+ORD-100141,2024-01-02,Central,Home,Android App,New,Card,City_019,1,3564.0,0.2658,356.4,5
+ORD-100142,2024-01-02,West,Books,Android App,VIP,Card,City_057,1,471.86,0.2567,0.0,4
+ORD-100143,2024-01-02,North,Sports,iOS App,Returning,UPI,City_062,1,3044.92,0.337,152.25,3
+ORD-100144,2024-01-02,West,Books,Web,New,Card,City_027,1,362.19,0.2063,0.0,7
+ORD-100145,2024-01-02,North,Beauty,Web,New,UPI,City_053,1,1509.28,0.4114,301.86,2
+ORD-100146,2024-01-02,North,Home,Web,VIP,Card,City_016,2,6573.18,0.2244,0.0,2
+ORD-100147,2024-01-02,West,Apparel,iOS App,New,Card,City_014,1,1882.66,0.3661,376.53,5
+ORD-100148,2024-01-02,East,Books,Android App,New,UPI,City_051,1,652.09,0.2424,65.21,1
+ORD-100149,2024-01-02,East,Sports,iOS App,Returning,Card,City_038,3,11008.7,0.3026,550.44,2
+ORD-100150,2024-01-02,North,Books,iOS App,Returning,Wallet,City_048,2,1218.51,0.2126,0.0,2
+ORD-100151,2024-01-02,South,Books,Web,Returning,Card,City_052,4,2398.22,0.1878,0.0,2
+ORD-100152,2024-01-02,North,Books,Android App,New,Card,City_077,2,1731.23,0.1926,173.12,3
+ORD-100153,2024-01-02,South,Electronics,Web,New,UPI,City_061,3,30266.93,0.1298,0.0,2
+ORD-100154,2024-01-02,East,Home,Web,Returning,UPI,City_012,2,8488.05,0.3093,0.0,2
+ORD-100155,2024-01-02,West,Electronics,Web,VIP,UPI,City_053,1,6405.61,0.107,320.28,2
+ORD-100156,2024-01-02,West,Beauty,Marketplace,Returning,UPI,City_021,2,1618.55,0.3595,80.93,1
+ORD-100157,2024-01-02,East,Electronics,Marketplace,Returning,COD,City_052,1,10672.94,0.0993,0.0,2
+ORD-100158,2024-01-02,Central,Beauty,Android App,New,UPI,City_052,1,813.65,0.3822,162.73,1
+ORD-100159,2024-01-02,Central,Electronics,Marketplace,Returning,Card,City_079,1,8640.42,0.1088,0.0,2
+ORD-100160,2024-01-02,North,Books,Android App,New,Wallet,City_004,1,637.22,0.2246,0.0,1
+ORD-100161,2024-01-02,West,Sports,Marketplace,VIP,COD,City_005,1,2874.72,0.3231,143.74,2
+ORD-100162,2024-01-02,East,Books,Web,VIP,Card,City_026,1,742.08,0.2387,0.0,1
+ORD-100163,2024-01-02,South,Sports,Web,Returning,Card,City_010,1,3316.86,0.2464,165.84,4
+ORD-100164,2024-01-02,South,Home,Web,New,Wallet,City_062,1,3478.8,0.266,0.0,3
+ORD-100165,2024-01-02,South,Electronics,Web,New,UPI,City_019,2,15668.47,0.1011,0.0,2
+ORD-100166,2024-01-02,North,Beauty,iOS App,Returning,Card,City_011,1,872.27,0.4365,0.0,2
+ORD-100167,2024-01-02,Central,Apparel,iOS App,New,Card,City_017,1,1278.55,0.3004,0.0,2
+ORD-100168,2024-01-02,Central,Books,Android App,Returning,Card,City_013,1,310.08,0.2108,46.51,2
+ORD-100169,2024-01-02,West,Books,Marketplace,New,Card,City_025,1,408.05,0.211,0.0,3
+ORD-100170,2024-01-02,South,Home,Android App,New,Card,City_072,1,4473.87,0.2442,447.39,1
+ORD-100171,2024-01-02,West,Books,Web,Returning,COD,City_063,1,451.43,0.1982,0.0,2
+ORD-100172,2024-01-02,East,Sports,iOS App,VIP,UPI,City_069,1,3637.66,0.3242,545.65,3
+ORD-100173,2024-01-02,West,Apparel,Android App,New,Wallet,City_051,4,6040.12,0.3915,0.0,1
+ORD-100174,2024-01-02,West,Apparel,iOS App,New,COD,City_075,2,2609.89,0.4197,130.49,2
+ORD-100175,2024-01-02,West,Home,Web,Returning,Card,City_061,1,2212.81,0.3049,110.64,1
+ORD-100176,2024-01-02,South,Electronics,Android App,New,Wallet,City_031,1,9233.87,0.1119,461.69,2
+ORD-100177,2024-01-02,East,Beauty,Web,Returning,Card,City_075,1,734.76,0.3721,0.0,3
+ORD-100178,2024-01-02,East,Home,Web,Returning,Card,City_062,1,4038.76,0.2909,403.88,3
+ORD-100179,2024-01-02,West,Books,Android App,VIP,UPI,City_017,1,429.17,0.1863,0.0,1
+ORD-100180,2024-01-02,South,Beauty,Android App,Returning,UPI,City_022,1,,0.3596,0.0,2
+ORD-100181,2024-01-02,North,Beauty,Marketplace,Returning,UPI,City_062,1,1468.23,0.4181,0.0,1
+ORD-100182,2024-01-02,East,Apparel,Android App,Returning,COD,City_063,1,1542.91,0.296,154.29,4
+ORD-100183,2024-01-02,West,Sports,Web,New,UPI,City_031,1,3022.96,0.294,0.0,4
+ORD-100184,2024-01-02,North,Books,iOS App,New,UPI,City_054,1,526.33,0.1942,0.0,1
+ORD-100185,2024-01-02,South,Books,Web,Returning,Wallet,City_065,4,2586.12,0.1844,517.22,4
+ORD-100186,2024-01-02,North,Apparel,Web,Returning,COD,City_050,1,2385.07,0.3176,119.25,2
+ORD-100187,2024-01-02,East,Home,Android App,VIP,UPI,City_062,1,2470.09,0.3107,247.01,3
+ORD-100188,2024-01-02,North,Sports,iOS App,VIP,COD,City_063,1,3685.94,0.2805,184.3,3
+ORD-100189,2024-01-02,North,Electronics,Android App,Returning,Card,City_020,1,7144.83,0.142,0.0,3
+ORD-100190,2024-01-02,Central,Home,Web,New,Card,City_021,1,2913.08,0.3053,291.31,2
+ORD-100191,2024-01-02,North,Sports,Web,Returning,Card,City_043,2,8016.24,0.2907,0.0,1
+ORD-100192,2024-01-02,South,Home,Web,Returning,COD,City_017,2,7513.57,0.2317,375.68,3
+ORD-100193,2024-01-02,West,Beauty,Android App,New,Card,City_012,1,672.21,0.4586,0.0,2
+ORD-100194,2024-01-02,South,Sports,Android App,Returning,COD,City_003,2,5572.24,0.2762,278.61,3
+ORD-100195,2024-01-02,Central,Apparel,iOS App,New,UPI,City_076,1,1903.83,0.2817,0.0,2
+ORD-100196,2024-01-02,East,Apparel,Android App,VIP,COD,City_002,1,1405.12,0.3102,281.02,5
+ORD-100197,2024-01-02,West,Beauty,Android App,New,UPI,City_078,1,648.53,0.3493,129.71,7
+ORD-100198,2024-01-02,West,Books,Android App,New,UPI,City_030,1,376.37,0.2142,18.82,3
+ORD-100199,2024-01-02,North,Books,Web,New,UPI,City_044,1,823.74,0.2394,0.0,1
+ORD-100200,2024-01-02,West,Electronics,Web,New,UPI,City_033,2,16885.94,0.0997,844.3,2

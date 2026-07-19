@@ -1,0 +1,14 @@
+{
+  "name": "axilattice",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "concurrently -n backend,frontend -c bgBlue.bold,bgGreen.bold \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && uvicorn main:app --reload --port 8000",
+    "frontend": "npm start --prefix frontend",
+    "install:all": "npm install --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
