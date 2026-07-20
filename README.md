@@ -1,116 +1,91 @@
-# Axilattice Insight Engine
+# Axilattice — Insight Engine
 
-Pre-computed analytics engine: Cube + Voice + NLU.  
-Connect data → cube builds once → every question is a lookup.
+A pre-computed, voice-enabled analytics engine that runs **entirely in your browser**.
+No backend. No database. No server. Just a static React site.
 
----
-
-## Architecture
-
-```
-frontend/ (React + Recharts)     → Vercel
-backend/  (FastAPI + DuckDB)     → Render
-```
-
-### Core Design Decisions
-
-| Problem in v3           | Fix in v1                                              |
-|-------------------------|--------------------------------------------------------|
-| Cardinality on cross-product | Per-dimension cutoff (default 50) in `profiler.py` |
-| Time as categorical dim | 5 separate grain passes (day/week/month/quarter/year) |
-| Keyword NLU              | Claude API intent parser with schema context          |
-| Ephemeral in-memory cube | DuckDB persisted to disk on Render                    |
-| No pre-computed deltas   | LAG window function baked into `axl_deltas` table     |
+Upload a CSV → it profiles the schema, builds a pre-computed cube, and answers
+questions instantly (voice or text). Diagnostic questions trigger an agent that
+reasons step-by-step.
 
 ---
 
-## Deploy Backend (Render)
+## Why this version deploys when the old one didn't
 
-1. Push `backend/` to a GitHub repo
-2. Create a new **Web Service** on [render.com](https://render.com)
-3. Connect your repo → Render auto-detects `render.yaml`
-4. Add env var: `ANTHROPIC_API_KEY = sk-ant-...`
-5. Deploy → note your service URL: `https://axilattice-backend.onrender.com`
+The previous package tried to deploy a Python/FastAPI backend + React frontend as
+one Render service. That's fragile and unnecessary — **the engine runs in the browser**,
+so there is nothing server-side to deploy. This package is a plain static site.
 
----
-
-## Deploy Frontend (Vercel)
-
-1. Push `frontend/` to GitHub
-2. Import project on [vercel.com](https://vercel.com)
-3. Add env var: `REACT_APP_API_URL = https://axilattice-backend.onrender.com`
-4. Update `vercel.json` → replace `your-backend.onrender.com` with your Render URL
-5. Deploy
+Two things that were silently breaking the build, now fixed:
+1. Conflicting deploy configs at root + backend level → removed. One clean config each.
+2. Unused imports → CRA builds run with `CI=true`, which turns lint warnings into
+   hard errors. Those imports are removed, and `CI=false` is set as a safety net.
 
 ---
 
-## Local Development
+## Deploy to Vercel (recommended, easiest)
+
+1. Push this folder to a GitHub repo.
+2. Go to vercel.com → **Add New → Project** → import the repo.
+3. Vercel auto-detects Create React App. Leave all settings default.
+4. Click **Deploy**. Done — live in ~60 seconds.
+
+That's it. `vercel.json` handles SPA routing.
+
+---
+
+## Deploy to Render (static site)
+
+1. Push this folder to a GitHub repo.
+2. Go to render.com → **New → Static Site** → connect the repo.
+   (Choose **Static Site**, NOT Web Service. This is the key fix.)
+3. Render reads `render.yaml` automatically. If asked, use:
+   - **Build Command:** `npm install && npm run build`
+   - **Publish Directory:** `build`
+4. Click **Create Static Site**. Live in a couple of minutes.
+
+Because it's a static site (not a web service), there are **no cold starts** —
+it's always instantly available.
+
+---
+
+## Run locally
 
 ```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-ANTHROPIC_API_KEY=sk-ant-... uvicorn main:app --reload
-
-# Frontend
-cd frontend
 npm install
-REACT_APP_API_URL=http://localhost:8000 npm start
+npm start        # opens http://localhost:3000
 ```
 
----
-
-## Query Endpoints
-
-| Endpoint              | Method | Description                          |
-|-----------------------|--------|--------------------------------------|
-| `/upload`             | POST   | Upload CSV/Excel/Parquet, build cube |
-| `/query`              | POST   | NLU → cube lookup → card payload     |
-| `/suggest`            | GET    | Contextual query suggestions         |
-| `/schema`             | GET    | Schema + cube build status           |
-| `/periods/{grain}`    | GET    | Available period keys                |
-| `/dashboard`          | POST   | Save dashboard                       |
-| `/dashboard/{id}`     | GET    | Load dashboard                       |
-| `/health`             | GET    | Status check                         |
+Then click "Drop a CSV to build the cube" and upload one of the sample files.
 
 ---
 
-## Cube Design
+## Sample data
 
-The cube is a DuckDB table (`axl_cube`) with this schema:
+Grab the sample CSVs from the main project's `sample_data/` folder:
+- `ecommerce_orders.csv`
+- `quickcommerce_deliveries.csv`
+
+Upload either one. Try:
+- "revenue by region this month" (instant)
+- "monthly revenue trend"
+- "why did revenue drop?" (watch the agent reason)
+
+---
+
+## File structure
 
 ```
-grain       VARCHAR   -- day | week | month | quarter | year
-period_key  VARCHAR   -- 2024-01 | 2024-Q1 | 2024 etc.
-dim_combo   VARCHAR   -- region | region|category | __total__
-dim_json    VARCHAR   -- {"region": "North"}
-measure     VARCHAR   -- revenue | units | margin
-val_sum     DOUBLE
-val_count   BIGINT
-val_min     DOUBLE
-val_max     DOUBLE
-val_mean    DOUBLE
-val_stddev  DOUBLE
+axilattice/
+├── package.json      # dependencies + build scripts (pinned versions)
+├── render.yaml       # Render static-site config
+├── vercel.json       # Vercel SPA routing
+├── .nvmrc            # Node version pin (20.11.1)
+├── public/
+│   └── index.html
+└── src/
+    ├── index.js      # React entry
+    ├── App.js        # UI: upload, query bar, cards, agent, dashboard
+    └── engine.js     # in-browser cube: parse → profile → build → query
 ```
 
-Deltas (period-over-period %) are pre-computed via `axl_deltas` using a LAG window.
-
----
-
-## Cardinality Cutoff
-
-Dimensions with > 50 distinct values are excluded from the cube (configurable in `profiler.py`).  
-They remain queryable via DuckDB SQL fallback in `CubeEngine._raw()`.
-
-**Why 50?** A bar chart with > 50 bars is unreadable. A cube cell for a dimension with 10,000 values wastes memory and produces noise, not insight.
-
----
-
-## Roadmap
-
-- [ ] Anomaly detection on cube deltas (±2σ auto-flag)
-- [ ] Incremental CDC append (`CubeEngine.append()` is built, wire up `/append` endpoint)
-- [ ] Multi-tenant (key cube by session token)
-- [ ] Alert engine (threshold watchers on cube cells)
-- [ ] Embedded iframe mode (drop into any BI tool)
-"# axilattice_v3" 
+No `backend/` folder. Nothing else needed.

@@ -2,13 +2,25 @@
   "name": "axilattice",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "start": "concurrently -n backend,frontend -c bgBlue.bold,bgGreen.bold \"npm run backend\" \"npm run frontend\"",
-    "backend": "cd backend && uvicorn main:app --reload --port 8000",
-    "frontend": "npm start --prefix frontend",
-    "install:all": "npm install --prefix frontend"
+  "engines": {
+    "node": ">=18 <=20"
   },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-scripts": "5.0.1",
+    "recharts": "2.13.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "CI=false react-scripts build",
+    "test": "react-scripts test --watchAll=false"
+  },
+  "eslintConfig": {
+    "extends": ["react-app"]
+  },
+  "browserslist": {
+    "production": [">0.2%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
   }
 }

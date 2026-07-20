@@ -1,39 +1,6 @@
-# Environment
-.env
-.env.*
-
-# Node
 node_modules/
-frontend/node_modules/
-
-# React build output
-frontend/build/
-
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-*.egg-info/
-dist/
 build/
-.venv/
-venv/
-env/
-
-# DuckDB data files
-*.duckdb
-*.duckdb.wal
-
-# OS
+.env
+.env.local
 .DS_Store
-Thumbs.db
-
-# Logs
-*.log
 npm-debug.log*
-
-# IDE
-.vscode/
-.idea/
