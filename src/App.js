@@ -6,7 +6,7 @@ import {
 import {
   parseCSV, profile, buildCube,
   queryBreakdown, queryTrend, queryTotal, queryTopK, queryDelta,
-  latestPeriod,
+  latestPeriod, findOutliers, drillLocalize, correlate,
 } from "./engine";
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -33,6 +33,19 @@ function fmtKpi(v) {
   if (Math.abs(v) >= 1e6) return `${(v/1e6).toFixed(1)}M`;
   if (Math.abs(v) >= 1e3) return `${(v/1e3).toFixed(1)}K`;
   return v.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+/* Responsive breakpoint hook — drives mobile vs desktop layout */
+function useIsMobile(breakpoint = 820) {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  );
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [breakpoint]);
+  return isMobile;
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -69,35 +82,50 @@ function parseIntent(text, schema) {
   else if (/quarter|qoq/.test(q)) grain = "quarter";
   else if (/year|annual|yoy/.test(q)) grain = "year";
 
-  // insight type
+  // insight type + agent selection
   let insight_type = "breakdown";
-  if (/\b(why|explain|reason|cause|diagnos|root|drop|decline|fell|worse|spike|anomal)\b/.test(q))
-    insight_type = "diagnostic";
-  else if (/trend|over time|trajectory|history/.test(q)) insight_type = "trend";
-  else if (/\btop|best|rank|highest|lowest|worst\b/.test(q)) insight_type = "topk";
-  else if (/total|overall|sum|grand/.test(q)) insight_type = "total";
-  else if (!dimension) insight_type = "trend";
+  let agent = null;
+
+  // Agent triggers (each maps to one of the 4 agents)
+  if (/\b(scan|survey|overview|what.?s notable|anything interesting|what stands out|explore)\b/.test(q)) {
+    insight_type = "agent"; agent = "scan";
+  } else if (/\b(deep ?dive|analyze|break down .* across|all grains|across time|full analysis)\b/.test(q)) {
+    insight_type = "agent"; agent = "deepdive";
+  } else if (/\b(correlat|relationship|move together|linked|odd one|outlier|find the odd)\b/.test(q)) {
+    insight_type = "agent"; agent = "correlate";
+  } else if (/\b(why|explain|reason|cause|diagnos|root|drop|decline|fell|worse|spike|anomal|drill|localize|where)\b/.test(q)) {
+    insight_type = "agent"; agent = "drill";
+  } else if (/trend|over time|trajectory|history/.test(q)) {
+    insight_type = "trend";
+  } else if (/\btop|best|rank|highest|lowest|worst\b/.test(q)) {
+    insight_type = "topk";
+  } else if (/total|overall|sum|grand/.test(q)) {
+    insight_type = "total";
+  } else if (!dimension) {
+    insight_type = "trend";
+  }
 
   let k = 5; const km = q.match(/top\s+(\d+)/); if (km) k = +km[1];
 
-  // If diagnostic but no dimension named, default to the first dimension
-  if (insight_type === "diagnostic" && !dimension) dimension = dims[0];
+  // Agents that need a dimension default to the first
+  if (agent && ["drill","deepdive"].includes(agent) && !dimension) dimension = dims[0];
 
   const title = text.length > 52 ? text.slice(0,50)+"…" : text;
-  return { insight_type, measure, dimension, grain, k, title };
+  return { insight_type, agent, measure, dimension, grain, k, title };
 }
 
 /* ════════════════════════════════════════════════════════════════════════
    AGENT ROUTER
    ════════════════════════════════════════════════════════════════════════ */
 function routeQuery(intent) {
-  return intent.insight_type === "diagnostic" ? "agent" : "fast";
+  return intent.insight_type === "agent" ? "agent" : "fast";
 }
 
 // FAST PATH — one cube lookup → card
 function fastPathCard(cube, intent) {
   const { insight_type, measure, dimension, grain, k } = intent;
-  let chart_data = [], kpi = null, delta = null, chart_type = "bar", period = latestPeriod(cube, grain);
+  const selPeriod = intent.period || null;   // user-selected period, if any
+  let chart_data = [], kpi = null, delta = null, chart_type = "bar", period = selPeriod || latestPeriod(cube, grain);
   const nPeriods = { day:30, week:16, month:12, quarter:8, year:5 }[grain] || 12;
 
   if (insight_type === "trend" || (!dimension && insight_type !== "total")) {
@@ -107,15 +135,15 @@ function fastPathCard(cube, intent) {
     const prev = chart_data.at(-2)?.value;
     delta = prev ? (kpi - prev)/prev : null;
   } else if (insight_type === "total") {
-    const r = queryTotal(cube, measure, grain);
+    const r = queryTotal(cube, measure, grain, selPeriod);
     kpi = r.value; delta = r.delta; period = r.period;
     chart_data = queryTrend(cube, measure, grain, nPeriods); chart_type = "area";
   } else if (insight_type === "topk") {
-    chart_data = queryTopK(cube, dimension, measure, grain, k);
+    chart_data = queryTopK(cube, dimension, measure, grain, k, selPeriod);
     chart_type = "bar"; kpi = chart_data[0]?.value;
     delta = queryDelta(cube, dimension, chart_data[0]?.label, measure, grain);
   } else { // breakdown
-    chart_data = queryBreakdown(cube, dimension, measure, grain);
+    chart_data = queryBreakdown(cube, dimension, measure, grain, selPeriod);
     chart_type = chart_data.length <= 5 ? "pie" : "bar";
     kpi = chart_data.reduce((s,d)=>s+d.value, 0);
     delta = queryDelta(cube, dimension, chart_data[0]?.label, measure, grain);
@@ -147,65 +175,284 @@ function makeSummary(itype, measure, data, kpi, delta, grain) {
 }
 
 // AGENT — OODA loop over the real cube
-async function runAgent(cube, intent, onStep) {
-  const { measure } = intent;
-  const dim = intent.dimension;
+/* ════════════════════════════════════════════════════════════════════════
+   MULTI-AGENT SYSTEM
+   Four distinct agents, each with a different job, plus an insight taxonomy.
+   All reasoning is deterministic math over the cube (fast, in-browser, free).
+   ────────────────────────────────────────────────────────────────────────
+   AGENTS:
+     scan      → (a) survey ALL dims × measures, surface what's notable
+     deepdive  → (b) one selected dim + measure, across ALL time grains
+     drill     → (c) narrow single-dim → multi-dim for a measure over time
+                     (drill-down + drill-across; "the insight sequence")
+     correlate → (d) find measures/dims that move together + the odd ones
+   ════════════════════════════════════════════════════════════════════════ */
+
+const INSIGHT_TYPES = {
+  temporal:   { label:"Temporal",   supported:true,  desc:"trends, seasonality, growth over time" },
+  behavioral: { label:"Behavioral", supported:true,  desc:"how segments/dimensions differ in behavior" },
+  causal:     { label:"Causal",     supported:true,  desc:"drill-down root cause, what drives a shift" },
+  spatial:    { label:"Spatial",    supported:true,  desc:"geographic / regional distribution" },
+  network:    { label:"Network",    supported:false, desc:"relationships between entities — needs graph/edge data" },
+  sentiment:  { label:"Sentiment",  supported:false, desc:"opinion/emotion — needs text or review data" },
+  industry:   { label:"Industry",   supported:false, desc:"benchmarking vs peers — needs external market data" },
+};
+
+// Detect if a dimension is spatial (used to tag spatial insights)
+// eslint-disable-next-line no-unused-vars
+function isSpatialDim(name) {
+  return /(region|city|state|country|geo|location|zone|area|territory|district)/i.test(name);
+}
+
+async function stepper(onStep) {
   const trace = [];
-  const step = async (phase, label, detail) => {
+  return async (phase, label, detail) => {
     trace.push({ phase, label, detail });
     onStep([...trace]);
-    await new Promise(r => setTimeout(r, 650));
+    await new Promise(r => setTimeout(r, 550));
+    return trace;
   };
+}
 
-  // Worst single-period drop for a given dim value across the month grain
-  const worstDropFor = (value) => {
-    const tr = queryTrend(cube, measure, "month", 12, dim, value);
-    let drop = 0, month = null;
-    for (let i = 1; i < tr.length; i++) {
-      const d = tr[i-1].value ? (tr[i].value - tr[i-1].value)/tr[i-1].value : 0;
-      if (d < drop) { drop = d; month = tr[i].period; }
-    }
-    return { drop, month, trend: tr };
-  };
+const newId = () => Math.random().toString(36).slice(2,8);
 
-  // OBSERVE
-  const totalTrend = queryTrend(cube, measure, "month", 12);
-  const tMin = Math.min(...totalTrend.map(t=>t.value)), tMax = Math.max(...totalTrend.map(t=>t.value));
-  await step("OBSERVE", `Pull ${measure} total trend`,
-    `Fetched 12 months of total ${measure} (range ${fmtKpi(tMin)}–${fmtKpi(tMax)}). Scanning beneath the aggregate for localized weakness.`);
+/* Pick a working grain: prefer the requested one, but fall back to whatever the
+   cube actually has periods for. Prevents agents from assuming "month" exists. */
+function resolveGrain(cube, requested) {
+  const order = ["month","quarter","year","week","day"];
+  const has = (g) => Object.keys(cube.totals?.[g] || {}).length >= 2;
+  if (requested && has(requested)) return requested;
+  for (const g of order) if (has(g)) return g;
+  return requested || "month";
+}
+// How many periods to show for a given grain (adapts lookback to grain)
+function lookbackFor(grain) {
+  return { day:30, week:16, month:12, quarter:8, year:5 }[grain] || 12;
+}
 
-  // ORIENT
-  const breakdown = queryBreakdown(cube, dim, measure, "month");
-  const profiles = breakdown.map(b => ({ label: b.label, ...worstDropFor(b.label) }))
-    .sort((a,b)=>a.drop-b.drop);
-  const worst = profiles[0];
-  const worstTxt = worst && worst.month
-    ? `${worst.label} fell ${(worst.drop*100).toFixed(1)}% at ${worst.month}`
-    : `no single ${dim} shows a sharp drop`;
-  await step("ORIENT", `Decompose ${measure} by ${dim}`,
-    `Analyzed the full trajectory of ${breakdown.length} ${dim}s. Sharpest move: ${worstTxt}.`);
+/* ── AGENT (a): SCAN — survey everything, surface the top 3 notable ───────── */
+async function agentScan(cube, intent, onStep) {
+  const step = await stepper(onStep);
+  const measure = intent.measure;
+  const grain = resolveGrain(cube, intent.grain);
+  const period = intent.period || null;   // null → latest inside engine
+  const dims = cube.meta.dims.map(d=>d.col);
+  let trace;
 
-  // DECIDE
-  await step("DECIDE", `Isolate ${worst.label} as prime suspect`,
-    `${worst.label}'s move is the largest contributor to the aggregate shift. Drilling into its ${measure} trend to confirm the inflection.`);
+  await step("OBSERVE", "Survey all dimensions",
+    `Scanning ${dims.length} dimensions against ${measure} at ${grain} grain to find where variation concentrates.`);
 
-  // ACT
-  const moverTrend = worst.trend;
-  await step("ACT", `Confirm inflection in ${worst.label}`,
-    `Verified inflection at ${worst.month || "n/a"}. Neighboring ${dim}s show no matching break — the cause is localized to ${worst.label}.`);
+  // Collect ALL outliers across all dimensions, then take the global top 3
+  const all = [];
+  for (const dim of dims) {
+    const { outliers, mean } = findOutliers(cube, dim, measure, grain, period, 1.0);
+    for (const o of outliers) all.push({ dim, ...o, siblingMean: mean });
+  }
+  all.sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
+  const top3 = all.slice(0,3);
 
-  const summary = worst.month
-    ? `Root cause: the shift in total ${measure} traces to ${worst.label}, which moved ${Math.abs(worst.drop*100).toFixed(1)}% at ${worst.month}. Other ${dim}s stayed stable — this is a localized ${worst.label} effect, not systemic.`
-    : `No single ${dim} shows a dominant drop; the movement in ${measure} appears distributed rather than localized.`;
+  await step("ORIENT", "Rank dimensions by anomaly strength",
+    top3.length
+      ? `Top signals: ${top3.map(f=>`${f.dim}=${f.label} (${f.z>0?"+":""}${f.z.toFixed(1)}σ)`).join(", ")}.`
+      : `No dimension shows a strong outlier — ${measure} is evenly distributed.`);
+
+  const top = top3[0];
+  await step("DECIDE", "Select the standout",
+    top ? `${top.dim}=${top.label} is the strongest of ${all.length} flagged cells.`
+        : `Presenting the top-level trend as the headline.`);
+
+  trace = await step("ACT", "Assemble overview + runner-ups",
+    top ? `Headline plus two runner-ups assembled for comparison.`
+        : `Overview assembled from total trend.`);
+
+  const chart_data = top ? queryBreakdown(cube, top.dim, measure, grain, period) : queryTrend(cube, measure, grain, lookbackFor(grain));
+  const summary = top
+    ? `Overview (top 3): ` + top3.map((f,i)=>
+        `${i+1}) ${f.dim}=${f.label} at ${fmtKpi(f.value)} (${Math.abs(f.z).toFixed(1)}σ ${f.z>0?"above":"below"} peers)`
+      ).join("; ") + `. Strongest lead: ${top.dim}=${top.label}.`
+    : `Overview: ${measure} is evenly spread across dimensions with no dominant outlier this period.`;
 
   return {
-    id: Math.random().toString(36).slice(2,8),
-    title: intent.title, insight_type: "diagnostic",
-    measure, dimension: dim, grain: intent.grain,
-    chart_type: "area", chart_data: moverTrend,
-    kpi: moverTrend.at(-1)?.value, delta: worst.drop, period: worst.month,
-    summary, via: "agent", trace, focus: worst.label,
+    id:newId(), title:intent.title, insight_type:"scan", insightClass:"behavioral",
+    measure, dimension: top?.dim||null, grain, period,
+    chart_type: top?"bar":"area", chart_data,
+    kpi: top?top.value:queryTotal(cube,measure,grain,period).value,
+    delta:null, period_key: period || latestPeriod(cube,grain),
+    findings: top3,
+    summary, via:"agent", agent:"scan", trace,
   };
+}
+
+/* ── AGENT (b): DEEP-DIVE — one dim+measure across all grains ─────────────── */
+async function agentDeepDive(cube, intent, onStep) {
+  const step = await stepper(onStep);
+  const measure = intent.measure;
+  const dim = intent.dimension || cube.meta.dims[0]?.col;
+  const grain = resolveGrain(cube, intent.grain);
+  const period = intent.period || null;
+  let trace;
+
+  await step("OBSERVE", `Load ${dim} × ${measure}`,
+    `Pulling ${measure} broken down by ${dim} at ${grain} grain as the base view.`);
+
+  // Compare across whatever coarser grains the cube has
+  const grainsToCheck = ["month","quarter","year"].filter(g => Object.keys(cube.totals?.[g]||{}).length >= 2);
+  const grainViews = {};
+  for (const g of grainsToCheck) grainViews[g] = queryBreakdown(cube, dim, measure, g);
+
+  await step("ORIENT", "Compare across time grains",
+    `Computed ${dim} breakdown at ${grainsToCheck.join(", ")} to test whether the ranking holds across horizons.`);
+
+  // Rank stability of the leader across grains
+  const leaders = Object.entries(grainViews).map(([g,bd])=>({g, leader:bd[0]?.label}));
+  const stable = leaders.length>1 && leaders.every(l=>l.leader===leaders[0].leader);
+  await step("DECIDE", "Assess consistency",
+    stable ? `${leaders[0].leader} leads ${measure} at every grain — a durable pattern.`
+           : `The ${measure} leader shifts across grains — horizon-dependent.`);
+
+  trace = await step("ACT", "Build deep-dive (top 3)",
+    `Surfacing the ${grain}-grain breakdown with the top 3 values and the cross-grain note.`);
+
+  const bd = queryBreakdown(cube, dim, measure, grain, period);
+  const tot = bd.reduce((s,d)=>s+d.value,0);
+  const top3 = bd.slice(0,3);
+  const summary = bd.length
+    ? `Top 3 ${dim} by ${measure}: ` + top3.map((r,i)=>
+        `${i+1}) ${r.label} ${fmtKpi(r.value)} (${tot?((r.value/tot)*100).toFixed(0):0}%)`
+      ).join(", ") + `. ${stable?`Ranking holds across ${grainsToCheck.join("/")} — a stable structural pattern.`:`Note: leader shifts at coarser grains, so this is horizon-sensitive.`}`
+    : `No ${measure} data for ${dim}.`;
+
+  return {
+    id:newId(), title:intent.title, insight_type:"deepdive", insightClass:"behavioral",
+    measure, dimension:dim, grain, period,
+    chart_type: bd.length<=5?"pie":"bar", chart_data:bd,
+    kpi: tot, delta:null, period_key: period || latestPeriod(cube,grain),
+    findings: top3,
+    summary, via:"agent", agent:"deepdive", trace,
+  };
+}
+
+/* ── AGENT (c): DRILL — single-dim → multi-dim localization ───────────────── */
+async function agentDrill(cube, intent, onStep) {
+  const step = await stepper(onStep);
+  const measure = intent.measure;
+  const grain = resolveGrain(cube, intent.grain);
+  let trace;
+
+  const totalTrend = queryTrend(cube, measure, grain, lookbackFor(grain));
+  // If user pinned a period, probe that; else find the biggest total move
+  let probe = intent.period, worstDrop = 0;
+  if (!probe) {
+    for (let i=1;i<totalTrend.length;i++){
+      const d = totalTrend[i-1].value ? (totalTrend[i].value-totalTrend[i-1].value)/totalTrend[i-1].value : 0;
+      if (d < worstDrop){ worstDrop=d; probe=totalTrend[i].period; }
+    }
+    probe = probe || latestPeriod(cube,grain);
+  }
+
+  await step("OBSERVE", `Locate the inflection in ${measure}`,
+    intent.period ? `Investigating the selected period ${probe}.`
+      : worstDrop ? `Biggest total move is at ${probe} (${(worstDrop*100).toFixed(1)}%). Investigating that period.`
+                  : `No sharp total move; examining ${probe}.`);
+
+  await step("ORIENT", "Drill down — test each dimension",
+    `Running outlier detection across every dimension at ${probe} to find where the movement concentrates.`);
+
+  const drill = drillLocalize(cube, measure, grain, probe, { zThreshold:1.0 });
+
+  await step("DECIDE", "Drill across — narrow within the outlier",
+    drill.path.length>1
+      ? `${drill.path[0].dim}=${drill.path[0].value} is the primary driver. Drilling across into ${drill.path[1].dim} to localize further.`
+      : drill.path.length
+        ? `${drill.path[0].dim}=${drill.path[0].value} is the driver; no secondary dimension sharpens it.`
+        : `Movement is distributed — no single cell dominates.`);
+
+  trace = await step("ACT", "Confirm the localized cell",
+    drill.localized ? `Localized to: ${drill.localized}.` : `Could not localize to one cell — the effect is broad.`);
+
+  const focusDim = drill.path[0]?.dim, focusVal = drill.path[0]?.value;
+  const chart_data = focusDim ? queryTrend(cube, measure, grain, lookbackFor(grain), focusDim, focusVal) : totalTrend;
+
+  const summary = drill.path.length
+    ? `Drill sequence: ${measure} movement at ${probe} localizes to ${drill.localized}. ` +
+      `${drill.path.length>1 ? `Single-dimension (${drill.path[0].dim}=${drill.path[0].value}) narrows further crossed with ${drill.path[1].dim}=${drill.path[1].value} — that intersection is the tightest explanation.` : `This dimension alone explains the shift.`}`
+    : `${measure} moved at ${probe} but the cause is distributed across cells.`;
+
+  return {
+    id:newId(), title:intent.title, insight_type:"drill", insightClass:"causal",
+    measure, dimension:focusDim, grain, period:intent.period||null,
+    chart_type:"area", chart_data,
+    kpi: chart_data.at(-1)?.value, delta: worstDrop || null,
+    period_key: probe, drillPath: drill.path, localized: drill.localized,
+    summary, via:"agent", agent:"drill", trace,
+  };
+}
+
+/* ── AGENT (d): CORRELATE — find measures that move together + odd ones ───── */
+async function agentCorrelate(cube, intent, onStep) {
+  const step = await stepper(onStep);
+  const measures = cube.meta.measures.map(m=>m.col);
+  const dims = cube.meta.dims.map(d=>d.col);
+  const anchor = intent.measure;
+  const grain = resolveGrain(cube, intent.grain);
+  const period = intent.period || null;
+  const dim = intent.dimension || dims[0];
+  let trace;
+
+  await step("OBSERVE", "Set up correlation matrix",
+    `Testing how ${anchor} co-moves with other measures across ${dim} at ${grain} grain.`);
+
+  const correlations = [];
+  for (const m of measures) {
+    if (m === anchor) continue;
+    const { r, n } = correlate(cube, anchor, m, dim, grain, period);
+    if (r != null) correlations.push({ measure:m, r, n });
+  }
+  correlations.sort((a,b)=>Math.abs(b.r)-Math.abs(a.r));
+  const top3corr = correlations.slice(0,3);
+
+  await step("ORIENT", "Rank by correlation strength (top 3)",
+    top3corr.length
+      ? top3corr.map(c=>`${anchor}↔${c.measure} r=${c.r.toFixed(2)}`).join(", ")
+      : `Only one measure — no cross-measure correlation possible.`);
+
+  const { outliers } = findOutliers(cube, dim, anchor, grain, period, 1.0);
+  const top3odd = outliers.slice(0,3);
+  await step("DECIDE", "Find the odd ones (top 3)",
+    top3odd.length
+      ? `Outliers breaking the pattern: ${top3odd.map(o=>`${o.label} (${o.z>0?"+":""}${o.z.toFixed(1)}σ)`).join(", ")}.`
+      : `No ${dim} breaks the ${anchor} pattern — the relationship is uniform.`);
+
+  trace = await step("ACT", "Assemble correlation insight",
+    `Pairing the top correlations with the flagged outliers.`);
+
+  const top = top3corr[0];
+  const chart_data = queryBreakdown(cube, dim, anchor, grain, period);
+  const oddTxt = top3odd.length ? ` Odd ones out: ${top3odd.map(o=>`${o.label} (${Math.abs(o.z).toFixed(1)}σ)`).join(", ")}.` : "";
+  const corrTxt = top
+    ? `Top correlations with ${anchor}: ` + top3corr.map(c=>
+        `${c.measure} (r=${c.r.toFixed(2)}, ${Math.abs(c.r)>0.7?"strong":Math.abs(c.r)>0.4?"moderate":"weak"})`
+      ).join(", ") + `.`
+    : `Only one measure available — no cross-measure correlation possible.`;
+
+  return {
+    id:newId(), title:intent.title, insight_type:"correlate", insightClass:"behavioral",
+    measure:anchor, dimension:dim, grain, period,
+    chart_type:"bar", chart_data,
+    kpi: chart_data.reduce((s,d)=>s+d.value,0), delta:null,
+    period_key: period || latestPeriod(cube,grain),
+    correlations:top3corr, outliers:top3odd,
+    summary: corrTxt + oddTxt, via:"agent", agent:"correlate", trace,
+  };
+}
+
+// Dispatcher — routes an intent to the right agent
+async function runAgent(cube, intent, onStep) {
+  const which = intent.agent || "drill";
+  if (which === "scan")      return agentScan(cube, intent, onStep);
+  if (which === "deepdive")  return agentDeepDive(cube, intent, onStep);
+  if (which === "correlate") return agentCorrelate(cube, intent, onStep);
+  return agentDrill(cube, intent, onStep);   // default: drill (root-cause)
 }
 
 
@@ -640,6 +887,11 @@ export default function App() {
   const [pinned,setPinned]   = useState([]);
   const [agentTrace,setAgentTrace] = useState(null);
   const [agentLive,setAgentLive]   = useState(false);
+  const [mobilePanel,setMobilePanel] = useState(null);  // null | "dims" | "dash"
+  const [selMeasure,setSelMeasure] = useState(null);   // user-pinned measure override
+  const [selPeriod,setSelPeriod]   = useState(null);   // user-pinned period override
+  const [selGrain,setSelGrain]     = useState("month");// grain for the period picker
+  const isMobile = useIsMobile();
   const inputRef = useRef(null);
 
   const { listening, interim, start:startVoice, stop:stopVoice, speak } = useVoice({
@@ -651,7 +903,7 @@ export default function App() {
     setCube(cube); setSchema(schema); setFileName(fileName); setScreen("app");
   },[]);
 
-  // Suggestions built from the ACTUAL schema
+  // Suggestions built from the ACTUAL schema — mix of fast + all 4 agents
   const suggestions = useMemo(()=>{
     if (!schema) return [];
     const m  = schema.measures[0]?.col;
@@ -660,10 +912,10 @@ export default function App() {
     const s = [];
     if (m && d0) s.push(`${m} by ${d0} this month`);
     if (m)       s.push(`${m} trend`);
-    if (m && d1) s.push(`Top 5 ${d1} by ${m}`);
-    if (m && d0) s.push(`Why did ${m} drop?`);
-    if (m && d1) s.push(`${m} by ${d1}`);
-    if (m)       s.push(`Total ${m} this year`);
+    if (m && d0) s.push(`Why did ${m} drop?`);          // drill agent
+    if (m)       s.push(`Scan overview of ${m}`);        // scan agent
+    if (m)       s.push(`Find the odd ones in ${m}`);    // correlate agent
+    if (m && d0) s.push(`Deep dive ${m} by ${d0} across time`); // deepdive agent
     return s;
   },[schema]);
 
@@ -671,6 +923,9 @@ export default function App() {
     const q=(text||query).trim(); if(!q || !cube) return;
     setLoading(true); setQuery(""); setAgentTrace(null);
     const intent = parseIntent(q, schema);
+    // User selections override the parsed intent (explicit beats inferred)
+    if (selMeasure) intent.measure = selMeasure;
+    if (selPeriod)  { intent.period = selPeriod; intent.grain = selGrain; }
     const route  = routeQuery(intent);
 
     if (route==="agent") {
@@ -687,7 +942,7 @@ export default function App() {
       if (card.summary) speak(card.summary);
     }
     setLoading(false);
-  },[query,cube,schema,speak]);
+  },[query,cube,schema,speak,selMeasure,selPeriod,selGrain]);
 
   const handlePin=useCallback((c)=>setPinned(p=>p.some(x=>x.id===c.id)?p.filter(x=>x.id!==c.id):[...p,c]),[]);
   const handleUnpin=useCallback((id)=>setPinned(p=>p.filter(x=>x.id!==id)),[]);
@@ -703,32 +958,38 @@ export default function App() {
       <style>{GLOBAL_CSS}</style>
 
       {/* HEADER */}
-      <header style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"12px 24px",
+      <header style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
+        padding: isMobile ? "10px 14px" : "12px 24px",
         borderBottom:`1px solid ${T.border}`, background:T.bg1, position:"sticky", top:0, zIndex:100 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ fontSize:18, fontWeight:800, letterSpacing:"-1px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap: isMobile ? 8 : 12 }}>
+          <div style={{ fontSize: isMobile ? 15 : 18, fontWeight:800, letterSpacing:"-1px" }}>
             axilattice <span style={{ color:T.amber }}>·</span> engine
           </div>
-          <span style={{ fontFamily:T.mono, fontSize:9, color:T.amber, background:`${T.amberDim}20`,
-            border:`1px solid ${T.amberDim}60`, borderRadius:3, padding:"2px 7px", letterSpacing:"1px" }}>
-            AGENTIC · L99
-          </span>
+          {!isMobile && (
+            <span style={{ fontFamily:T.mono, fontSize:9, color:T.amber, background:`${T.amberDim}20`,
+              border:`1px solid ${T.amberDim}60`, borderRadius:3, padding:"2px 7px", letterSpacing:"1px" }}>
+              AGENTIC · L99
+            </span>
+          )}
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:20 }}>
-          {[{v:cellCount.toLocaleString(),l:"Cube Cells"},{v:dims.length,l:"Dimensions"},{v:measures.length,l:"Measures"}].map(({v,l})=>(
+        <div style={{ display:"flex", alignItems:"center", gap: isMobile ? 12 : 20 }}>
+          {(isMobile
+            ? [{v:cellCount.toLocaleString(),l:"Cells"}]
+            : [{v:cellCount.toLocaleString(),l:"Cube Cells"},{v:dims.length,l:"Dimensions"},{v:measures.length,l:"Measures"}]
+          ).map(({v,l})=>(
             <div key={l} style={{ textAlign:"right" }}>
               <div style={{ fontFamily:T.mono, fontSize:12, color:T.amber }}>{v}</div>
               <div style={{ fontSize:9, color:T.textDim, letterSpacing:"1px", textTransform:"uppercase" }}>{l}</div>
             </div>
           ))}
           <button onClick={()=>{setScreen("upload"); setCube(null); setSchema(null); setCards([]); setPinned([]);}}
-            style={{ padding:"7px 14px", borderRadius:5, border:`1px solid ${T.border}`, background:"transparent",
-              color:T.textMid, fontFamily:T.sans, fontSize:11, cursor:"pointer" }}>↩ New Data</button>
+            style={{ padding: isMobile ? "6px 10px" : "7px 14px", borderRadius:5, border:`1px solid ${T.border}`, background:"transparent",
+              color:T.textMid, fontFamily:T.sans, fontSize:11, cursor:"pointer" }}>{isMobile ? "↩" : "↩ New Data"}</button>
         </div>
       </header>
 
       {/* QUERY BAR */}
-      <div style={{ padding:"18px 24px 0" }}>
+      <div style={{ padding: isMobile ? "12px 14px 0" : "18px 24px 0" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, background:T.bg2,
           border:`1px solid ${listening?T.amber:T.borderHi}`, borderRadius:10, padding:"10px 14px",
           boxShadow: listening?`0 0 0 4px ${T.amber}12`:"none",
@@ -750,7 +1011,7 @@ export default function App() {
         </div>
         <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginTop:10 }}>
           {suggestions.map(s=>{
-            const isAgent = /why|drop|explain/.test(s.toLowerCase());
+            const isAgent = /why|drop|explain|scan|overview|odd|deep dive|correlat|drill/.test(s.toLowerCase());
             return (
               <span key={s} onClick={()=>handleAsk(s)}
                 style={{ fontSize:11, color:isAgent?T.purple:T.textMid, background:T.bg2,
@@ -761,13 +1022,71 @@ export default function App() {
             );
           })}
         </div>
+
+        {/* SELECTOR BAR — user overrides for measure + period */}
+        <div style={{ display:"flex", flexWrap:"wrap", alignItems:"center", gap:10, marginTop:12,
+          paddingTop:12, borderTop:`1px solid ${T.border}` }}>
+          <span style={{ fontSize:9, letterSpacing:"1.5px", textTransform:"uppercase", color:T.textDim, fontWeight:600 }}>
+            Focus
+          </span>
+
+          {/* Measure selector */}
+          <label style={{ fontSize:11, color:T.textDim }}>Measure:</label>
+          <select value={selMeasure||""} onChange={e=>setSelMeasure(e.target.value||null)}
+            style={{ background:T.bg2, color: selMeasure?T.amber:T.textMid, border:`1px solid ${selMeasure?`${T.amber}50`:T.border}`,
+              borderRadius:5, padding:"5px 9px", fontFamily:T.sans, fontSize:12, cursor:"pointer", outline:"none" }}>
+            <option value="">Auto</option>
+            {measures.map(m=><option key={m.col} value={m.col}>{m.col}</option>)}
+          </select>
+
+          {/* Grain selector (drives period list) */}
+          <label style={{ fontSize:11, color:T.textDim }}>Grain:</label>
+          <select value={selGrain} onChange={e=>{ setSelGrain(e.target.value); setSelPeriod(null); }}
+            style={{ background:T.bg2, color:T.textMid, border:`1px solid ${T.border}`,
+              borderRadius:5, padding:"5px 9px", fontFamily:T.sans, fontSize:12, cursor:"pointer", outline:"none" }}>
+            {["month","quarter","year","week","day"]
+              .filter(g=>Object.keys(cube.totals?.[g]||{}).length>=1)
+              .map(g=><option key={g} value={g}>{g}</option>)}
+          </select>
+
+          {/* Period selector */}
+          <label style={{ fontSize:11, color:T.textDim }}>Period:</label>
+          <select value={selPeriod||""} onChange={e=>setSelPeriod(e.target.value||null)}
+            style={{ background:T.bg2, color: selPeriod?T.amber:T.textMid, border:`1px solid ${selPeriod?`${T.amber}50`:T.border}`,
+              borderRadius:5, padding:"5px 9px", fontFamily:T.sans, fontSize:12, cursor:"pointer", outline:"none", maxWidth:130 }}>
+            <option value="">Latest / Auto</option>
+            {Object.keys(cube.totals?.[selGrain]||{}).sort().map(pk=>(
+              <option key={pk} value={pk}>{pk}</option>
+            ))}
+          </select>
+
+          {(selMeasure||selPeriod) && (
+            <button onClick={()=>{ setSelMeasure(null); setSelPeriod(null); }}
+              style={{ fontSize:11, color:T.textDim, background:"transparent", border:`1px solid ${T.border}`,
+                borderRadius:5, padding:"4px 10px", cursor:"pointer" }}>
+              Reset focus ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* BODY */}
-      <div style={{ display:"flex", flex:1, alignItems:"flex-start", minHeight:0 }}>
-        {/* SIDEBAR */}
-        <aside style={{ width:200, flexShrink:0, background:T.bg1, borderRight:`1px solid ${T.border}`,
-          padding:"20px 16px", overflowY:"auto", height:"100%" }}>
+      <div style={{ display:"flex", flex:1, alignItems:"flex-start", minHeight:0, position:"relative" }}>
+        {/* SIDEBAR — overlay drawer on mobile */}
+        {(!isMobile || mobilePanel==="dims") && (
+        <aside style={{
+          width: isMobile ? "80%" : 200, maxWidth: isMobile ? 300 : 200,
+          flexShrink:0, background:T.bg1, borderRight:`1px solid ${T.border}`,
+          padding:"20px 16px", overflowY:"auto",
+          height: isMobile ? "auto" : "100%",
+          position: isMobile ? "absolute" : "relative",
+          top:0, left:0, bottom: isMobile ? 0 : "auto", zIndex: isMobile ? 50 : 1,
+          boxShadow: isMobile ? "4px 0 24px rgba(0,0,0,0.5)" : "none",
+        }}>
+          {isMobile && (
+            <div onClick={()=>setMobilePanel(null)} style={{ display:"flex", justifyContent:"flex-end",
+              marginBottom:8, cursor:"pointer", color:T.textMid, fontSize:18 }}>✕</div>
+          )}
           <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
             <div>
               <div style={{ fontSize:9, letterSpacing:"2px", textTransform:"uppercase", color:T.textDim,
@@ -800,22 +1119,50 @@ export default function App() {
             </div>
             <div>
               <div style={{ fontSize:9, letterSpacing:"2px", textTransform:"uppercase", color:T.textDim,
-                fontWeight:600, marginBottom:10 }}>Agent Skills</div>
-              {["Diagnose a drop","Find anomalies","Root-cause analysis"].map(s=>(
-                <div key={s} onClick={()=>handleAsk(`why did ${measures[0]?.col||"value"} drop`)}
+                fontWeight:600, marginBottom:10 }}>Agents</div>
+              {[
+                { label:"Scan everything",   q:`scan overview of ${measures[0]?.col||"value"}` },
+                { label:"Deep-dive a dim",   q:`deep dive ${measures[0]?.col||"value"} by ${dims[0]?.col||"dimension"} across time` },
+                { label:"Drill root-cause",  q:`why did ${measures[0]?.col||"value"} drop` },
+                { label:"Correlate + odd ones", q:`find the odd ones in ${measures[0]?.col||"value"}` },
+              ].map(a=>(
+                <div key={a.label} onClick={()=>handleAsk(a.q)}
                   style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 8px", borderRadius:5,
                     cursor:"pointer", marginBottom:2, fontSize:11, color:T.purple }}
                   onMouseEnter={e=>e.currentTarget.style.background=T.bg3}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  ✦ {s}
+                  ✦ {a.label}
+                </div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontSize:9, letterSpacing:"2px", textTransform:"uppercase", color:T.textDim,
+                fontWeight:600, marginBottom:10 }}>Insight Types</div>
+              {Object.entries(INSIGHT_TYPES).map(([key,it])=>(
+                <div key={key}
+                  style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 8px", borderRadius:5,
+                    marginBottom:2, fontSize:11, color: it.supported?T.textMid:T.textDim,
+                    cursor: it.supported?"default":"help" }}
+                  title={it.supported ? it.desc : `Needs data source: ${it.desc}`}>
+                  <span style={{ width:6, height:6, borderRadius:"50%", flexShrink:0,
+                    background: it.supported?T.green:T.textFaint }}/>
+                  {it.label}
+                  {!it.supported && <span style={{ fontSize:8, color:T.textFaint, marginLeft:"auto" }}>needs data</span>}
                 </div>
               ))}
             </div>
           </div>
         </aside>
+        )}
+
+        {/* Mobile backdrop when a panel is open */}
+        {isMobile && mobilePanel && (
+          <div onClick={()=>setMobilePanel(null)}
+            style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.5)", zIndex:40 }}/>
+        )}
 
         {/* MAIN */}
-        <main style={{ flex:1, minWidth:0, padding:"20px 24px", overflowY:"auto" }}>
+        <main style={{ flex:1, minWidth:0, padding: isMobile ? "16px 14px 72px" : "20px 24px", overflowY:"auto", width:"100%" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
             <span style={{ fontSize:9, letterSpacing:"2px", textTransform:"uppercase", color:T.textDim, fontWeight:600 }}>
               Insights — {cards.length} generated
@@ -862,9 +1209,41 @@ export default function App() {
           </div>
         </main>
 
-        {/* DASHBOARD */}
-        <DashboardPanel pinned={pinned} onUnpin={handleUnpin}/>
+        {/* DASHBOARD — overlay drawer on mobile */}
+        {(!isMobile || mobilePanel==="dash") && (
+          <div style={ isMobile ? {
+            position:"absolute", top:0, right:0, bottom:0, zIndex:50,
+            width:"85%", maxWidth:320, boxShadow:"-4px 0 24px rgba(0,0,0,0.5)",
+          } : {} }>
+            {isMobile && (
+              <div onClick={()=>setMobilePanel(null)} style={{ position:"absolute", top:12, left:12,
+                cursor:"pointer", color:T.textMid, fontSize:18, zIndex:51 }}>✕</div>
+            )}
+            <DashboardPanel pinned={pinned} onUnpin={handleUnpin}/>
+          </div>
+        )}
       </div>
+
+      {/* MOBILE BOTTOM TAB BAR */}
+      {isMobile && (
+        <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:60,
+          display:"flex", background:T.bg1, borderTop:`1px solid ${T.border}`,
+          height:56 }}>
+          {[
+            { id:"dims", label:"Dimensions", icon:"◈" },
+            { id:null,   label:"Insights",   icon:"◆" },
+            { id:"dash", label:`Pins ${pinned.length}`, icon:"◉" },
+          ].map(tab=>(
+            <button key={tab.label} onClick={()=>setMobilePanel(tab.id)}
+              style={{ flex:1, border:"none", background:"transparent", cursor:"pointer",
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2,
+                color: mobilePanel===tab.id ? T.amber : T.textMid, fontFamily:T.sans }}>
+              <span style={{ fontSize:16 }}>{tab.icon}</span>
+              <span style={{ fontSize:10 }}>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

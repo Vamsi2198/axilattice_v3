@@ -196,6 +196,20 @@ export function buildCube(data, prof) {
     if (val > c.max) c.max = val;
   };
 
+  // Determine which 2-way dimension pairs to precompute.
+  // Guard: skip pairs whose combined cardinality is unreadably large.
+  const MAX_PAIR_CELLS = 400;
+  const crossPairs = [];
+  for (let i = 0; i < cubeDims.length; i++) {
+    for (let j = i+1; j < cubeDims.length; j++) {
+      const a = cubeDims[i], b = cubeDims[j];
+      if (a.cardinality * b.cardinality <= MAX_PAIR_CELLS) {
+        crossPairs.push([a.col, b.col, `${a.col}|${b.col}`]);
+      }
+    }
+  }
+  cube.crossPairs = crossPairs.map(p => p[2]);
+
   for (const row of data) {
     if (!timeCol) continue;
     const dateStr = row[timeCol];
@@ -227,12 +241,28 @@ export function buildCube(data, prof) {
         if (!cube.cells[g][combo][pk][dv]) cube.cells[g][combo][pk][dv] = {};
         for (const mc in mvals) bump(cube.cells[g][combo][pk][dv], mc, mvals[mc]);
       }
+
+      // 2-way cross cells (enables drill-across + correlation + "find odd ones")
+      // Only at month/quarter/year — daily/weekly cross cells are slow to build,
+      // huge, and rarely the grain at which cross-dimensional patterns matter.
+      if (g === "month" || g === "quarter" || g === "year") {
+        for (const [colA, colB, combo] of crossPairs) {
+          const va = row[colA], vb = row[colB];
+          if (va === "" || va == null || vb === "" || vb == null) continue;
+          const key = `${va}\u241F${vb}`;
+          if (!cube.cells[g][combo]) cube.cells[g][combo] = {};
+          if (!cube.cells[g][combo][pk]) cube.cells[g][combo][pk] = {};
+          if (!cube.cells[g][combo][pk][key]) cube.cells[g][combo][pk][key] = {};
+          for (const mc in mvals) bump(cube.cells[g][combo][pk][key], mc, mvals[mc]);
+        }
+      }
     }
   }
 
   cube.meta = {
     dims: cubeDims, measures, timeCol,
     excludedDims: prof.excludedDims,
+    crossPairs: cube.crossPairs,
     cellCount: countCells(cube),
   };
   return cube;
@@ -324,6 +354,147 @@ function isRateMeasure(cube, measure) {
   const name = measure.toLowerCase();
   if (/(pct|percent|rate|ratio|margin|rating|score|avg|mean|min$|_min|time)/.test(name)) return true;
   return false;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CROSS-DIMENSIONAL + CORRELATION + DRILL LATTICE
+   These power drill-across, "find the odd ones", and the multi-agent system.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const SEP = "\u241F"; // unit separator used to join two dim values
+
+/* Get the value of a measure for a specific cross cell (dimA=valA, dimB=valB). */
+export function queryCrossCell(cube, dimA, dimB, valA, valB, measure, grain, period) {
+  const pk = period || latestPeriod(cube, grain);
+  if (!pk) return 0;
+  // cross combos are stored sorted by original insertion order colA|colB
+  const combo = cube.crossPairs?.find(c => {
+    const [a,b] = c.split("|");
+    return (a===dimA && b===dimB) || (a===dimB && b===dimA);
+  });
+  if (!combo) return 0;
+  const [firstCol] = combo.split("|");
+  const key = firstCol === dimA ? `${valA}${SEP}${valB}` : `${valB}${SEP}${valA}`;
+  const c = cube.cells[grain]?.[combo]?.[pk]?.[key]?.[measure];
+  const rateLike = isRateMeasure(cube, measure);
+  return c ? (rateLike ? c.sum/(c.count||1) : c.sum) : 0;
+}
+
+/* Full 2-way breakdown: returns [{a, b, value}] for a cross pair in a period. */
+export function queryCrossBreakdown(cube, dimA, dimB, measure, grain, period) {
+  const pk = period || latestPeriod(cube, grain);
+  if (!pk) return [];
+  const combo = cube.crossPairs?.find(c => {
+    const [a,b] = c.split("|");
+    return (a===dimA && b===dimB) || (a===dimB && b===dimA);
+  });
+  if (!combo) return [];
+  const [firstCol] = combo.split("|");
+  const bucket = cube.cells[grain]?.[combo]?.[pk] || {};
+  const rateLike = isRateMeasure(cube, measure);
+  const flip = firstCol !== dimA;
+  return Object.entries(bucket).map(([key, cell]) => {
+    const [v1, v2] = key.split(SEP);
+    const c = cell[measure];
+    const value = c ? (rateLike ? c.sum/(c.count||1) : c.sum) : 0;
+    return { a: flip ? v2 : v1, b: flip ? v1 : v2, value };
+  }).sort((x,y)=>y.value-x.value);
+}
+
+/* CORRELATION between two measures across a dimension's values (Pearson).
+   e.g. do discount and revenue move together across regions? */
+export function correlate(cube, measureX, measureY, dim, grain, period) {
+  const bx = queryBreakdown(cube, dim, measureX, grain, period);
+  const by = queryBreakdown(cube, dim, measureY, grain, period);
+  const map = {};
+  bx.forEach(r => { map[r.label] = { x: r.value }; });
+  by.forEach(r => { if (map[r.label]) map[r.label].y = r.value; });
+  const pts = Object.values(map).filter(p => p.x != null && p.y != null);
+  if (pts.length < 3) return { r: null, n: pts.length };
+  const n = pts.length;
+  const sx = pts.reduce((a,p)=>a+p.x,0), sy = pts.reduce((a,p)=>a+p.y,0);
+  const mx = sx/n, my = sy/n;
+  let num=0, dx=0, dy=0;
+  pts.forEach(p => { const a=p.x-mx, b=p.y-my; num+=a*b; dx+=a*a; dy+=b*b; });
+  const r = (dx && dy) ? num/Math.sqrt(dx*dy) : null;
+  return { r, n };
+}
+
+/* "FIND THE ODD ONES" — anomaly localization via z-score against siblings.
+   For a dimension + measure at a period, flag values whose deviation from the
+   sibling mean exceeds `zThreshold` standard deviations. This is the core of
+   drill-based outlier detection. */
+export function findOutliers(cube, dim, measure, grain, period, zThreshold=1.5) {
+  const bd = queryBreakdown(cube, dim, measure, grain, period);
+  if (bd.length < 3) return { outliers: [], mean: null, std: null };
+  const vals = bd.map(b=>b.value);
+  const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+  const std = Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length);
+  const outliers = bd.map(b => ({
+    label: b.label, value: b.value,
+    z: std ? (b.value-mean)/std : 0,
+  })).filter(o => Math.abs(o.z) >= zThreshold)
+     .sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
+  return { outliers, mean, std };
+}
+
+/* DRILL LATTICE — for a measure, walk from single dim into 2-way cross to find
+   WHERE an anomaly localizes. Returns the drill path with the oddest child at
+   each level. This is the "insight sequence" — drill-down + drill-across. */
+export function drillLocalize(cube, measure, grain, period, opts={}) {
+  const pk = period || latestPeriod(cube, grain);
+  const dims = cube.meta.dims.map(d=>d.col);
+  const zThreshold = opts.zThreshold ?? 1.5;
+  const path = [];
+
+  // Level 1: which single dimension has the strongest outlier?
+  let best = null;
+  for (const dim of dims) {
+    const { outliers, mean, std } = findOutliers(cube, dim, measure, grain, pk, zThreshold);
+    if (outliers.length && (!best || Math.abs(outliers[0].z) > Math.abs(best.top.z))) {
+      best = { dim, top: outliers[0], mean, std, all: outliers };
+    }
+  }
+  if (!best) return { path: [], localized: null };
+  path.push({
+    level: 1, dim: best.dim, value: best.top.label,
+    z: best.top.z, value_num: best.top.value, siblingMean: best.mean,
+  });
+
+  // Level 2: within that outlier value, drill ACROSS other dims to localize further
+  let bestPair = null;
+  for (const dimB of dims) {
+    if (dimB === best.dim) continue;
+    const combo = cube.crossPairs?.find(c => {
+      const [a,b]=c.split("|");
+      return (a===best.dim&&b===dimB)||(a===dimB&&b===best.dim);
+    });
+    if (!combo) continue;
+    // Get the sub-breakdown: fix best.dim=best.top.label, vary dimB
+    const cross = queryCrossBreakdown(cube, best.dim, dimB, measure, grain, pk)
+      .filter(r => r.a === best.top.label);
+    if (cross.length < 3) continue;
+    const vals = cross.map(c=>c.value);
+    const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const std = Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length);
+    const scored = cross.map(c=>({ label:c.b, value:c.value, z: std?(c.value-mean)/std:0 }))
+      .sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
+    if (scored.length && (!bestPair || Math.abs(scored[0].z) > Math.abs(bestPair.top.z))) {
+      bestPair = { dimB, top: scored[0], mean };
+    }
+  }
+  if (bestPair && Math.abs(bestPair.top.z) >= zThreshold) {
+    path.push({
+      level: 2, dim: bestPair.dimB, value: bestPair.top.label,
+      z: bestPair.top.z, value_num: bestPair.top.value, siblingMean: bestPair.mean,
+      parent: `${best.dim}=${best.top.label}`,
+    });
+  }
+
+  const localized = path.length > 1
+    ? `${path[0].dim}=${path[0].value} → ${path[1].dim}=${path[1].value}`
+    : `${path[0].dim}=${path[0].value}`;
+  return { path, localized };
 }
 
 export { latestPeriod, allPeriods, isRateMeasure };
