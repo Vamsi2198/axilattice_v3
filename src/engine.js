@@ -497,4 +497,137 @@ export function drillLocalize(cube, measure, grain, period, opts={}) {
   return { path, localized };
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   CUBE TRAVERSAL + INTERESTINGNESS SCORING
+   ──────────────────────────────────────────────────────────────────────────
+   THE core of the product. One function walks the ENTIRE pre-computed cube —
+   every measure × every dimension value × every cross-cell × the latest period
+   — and scores each cell for how "interesting" (surprising) it is, combining
+   three independent signals:
+
+     1. TEMPORAL  — how far this cell's latest value deviates from its own trend
+     2. SIBLING   — how far it deviates from its peers in the same dimension (z)
+     3. CROSS      — how far a cross-cell deviates from what its parents predict
+
+   Every insight the app shows — auto-discovery feed AND the query agents —
+   comes from this single scored traversal. No templated reports.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+// Signal 1: temporal deviation — latest value vs its own recent trajectory
+function temporalScore(cube, dim, value, measure, grain) {
+  const tr = queryTrend(cube, measure, grain, 12, dim, value);
+  if (tr.length < 4) return { z: 0, drop: 0, latest: tr.at(-1)?.value ?? 0 };
+  const hist = tr.slice(0, -1).map(t => t.value);
+  const mean = hist.reduce((a,b)=>a+b,0)/hist.length;
+  const std  = Math.sqrt(hist.reduce((a,b)=>a+(b-mean)**2,0)/hist.length);
+  const latest = tr.at(-1).value;
+  const prev = tr.at(-2).value;
+  const drop = prev ? (latest - prev)/prev : 0;
+  return { z: std ? (latest - mean)/std : 0, drop, latest };
+}
+
+// Signal 3: cross-cell surprise — does dimA=a × dimB=b deviate from the product
+// of their marginal shares? Only valid for ADDITIVE measures (sum), because the
+// independence expectation assumes values add up. Rate measures (margin %, ratings)
+// are averaged and must NOT use this signal.
+function crossSurprise(cube, dimA, dimB, measure, grain, period) {
+  if (isRateMeasure(cube, measure)) return [];   // additive-only signal
+  const cross = queryCrossBreakdown(cube, dimA, dimB, measure, grain, period);
+  if (cross.length < 4) return [];
+  const bdA = {}; queryBreakdown(cube, dimA, measure, grain, period).forEach(r=>bdA[r.label]=r.value);
+  const bdB = {}; queryBreakdown(cube, dimB, measure, grain, period).forEach(r=>bdB[r.label]=r.value);
+  const total = Object.values(bdA).reduce((a,b)=>a+b,0) || 1;
+  const surprises = [];
+  for (const c of cross) {
+    const expected = (bdA[c.a]||0) * (bdB[c.b]||0) / total;
+    if (expected <= 0) continue;
+    const ratio = c.value / expected;
+    const lift = Math.abs(Math.log2(ratio));
+    // Guard against tiny-cell noise: require the cell to be a meaningful share
+    if (c.value < total * 0.005) continue;
+    surprises.push({ a:c.a, b:c.b, value:c.value, expected, ratio, lift });
+  }
+  return surprises.sort((x,y)=>y.lift-x.lift);
+}
+
+/* MAIN TRAVERSAL — scan the whole cube, score every cell, return ranked insights.
+   Returns a flat list of scored insight objects, highest interestingness first. */
+export function discoverInsights(cube, opts={}) {
+  const grain = opts.grain && Object.keys(cube.totals?.[opts.grain]||{}).length>=2
+    ? opts.grain
+    : (["month","quarter","year"].find(g=>Object.keys(cube.totals?.[g]||{}).length>=3) || "month");
+  const period = opts.period || latestPeriod(cube, grain);
+  const measures = cube.meta.measures.map(m=>m.col);
+  const dims = cube.meta.dims.map(d=>d.col);
+  const insights = [];
+
+  for (const measure of measures) {
+    // ── Single-dimension cells: sibling + temporal signals ──
+    for (const dim of dims) {
+      const bd = queryBreakdown(cube, dim, measure, grain, period);
+      if (bd.length < 3) continue;
+      const vals = bd.map(b=>b.value);
+      const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+      const std  = Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length);
+      for (const cell of bd) {
+        const sibZ = std ? (cell.value - mean)/std : 0;
+        const temp = temporalScore(cube, dim, cell.label, measure, grain);
+        // Combined interestingness: sibling deviation + temporal deviation + drop magnitude
+        const score = Math.abs(sibZ)*1.0 + Math.abs(temp.z)*0.8 + Math.abs(temp.drop)*3.0;
+        if (score < 1.0) continue;   // skip the boring
+        insights.push({
+          kind: "cell",
+          measure, dim, value: cell.label, grain, period,
+          val: cell.value,
+          sibZ, tempZ: temp.z, drop: temp.drop,
+          score,
+          why: buildWhy(measure, dim, cell.label, sibZ, temp),
+        });
+      }
+    }
+
+    // ── Cross-cells: interaction surprise ──
+    for (let i=0;i<dims.length;i++){
+      for (let j=i+1;j<dims.length;j++){
+        const surprises = crossSurprise(cube, dims[i], dims[j], measure, grain, period);
+        for (const s of surprises.slice(0,3)) {
+          if (s.lift < 0.6) continue;   // ~1.5x over/under-representation
+          insights.push({
+            kind: "cross",
+            measure, dimA:dims[i], dimB:dims[j], a:s.a, b:s.b, grain, period,
+            val: s.value, expected: s.expected, ratio: s.ratio,
+            score: s.lift * 2.2,
+            why: `${dims[i]}=${s.a} × ${dims[j]}=${s.b} is ${s.ratio>1?"over":"under"}-represented on ${measure} ` +
+                 `(${s.ratio.toFixed(1)}× vs expected if independent).`,
+          });
+        }
+      }
+    }
+  }
+
+  insights.sort((a,b)=>b.score-a.score);
+  return { grain, period, insights };
+}
+
+function buildWhy(measure, dim, value, sibZ, temp) {
+  const parts = [];
+  if (Math.abs(sibZ) >= 1.2)
+    parts.push(`sits ${Math.abs(sibZ).toFixed(1)}σ ${sibZ>0?"above":"below"} its ${dim} peers`);
+  if (Math.abs(temp.drop) >= 0.15)
+    parts.push(`moved ${(temp.drop*100).toFixed(0)}% vs the prior period`);
+  if (Math.abs(temp.z) >= 1.2)
+    parts.push(`is ${Math.abs(temp.z).toFixed(1)}σ off its own trend`);
+  const body = parts.length ? parts.join(", ") : "shows mild deviation";
+  return `${dim}=${value} ${body} on ${measure}.`;
+}
+
+/* Classify an insight into the taxonomy (temporal/behavioral/causal/spatial). */
+export function classifyInsight(ins) {
+  const spatialRe = /(region|city|state|country|geo|location|zone|area|territory|district)/i;
+  if (ins.kind === "cross") return "causal";
+  if (ins.dim && spatialRe.test(ins.dim)) return "spatial";
+  if (Math.abs(ins.drop||0) >= 0.15 || Math.abs(ins.tempZ||0) >= 1.2) return "temporal";
+  return "behavioral";
+}
+
 export { latestPeriod, allPeriods, isRateMeasure };

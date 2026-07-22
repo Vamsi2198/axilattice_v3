@@ -6,7 +6,8 @@ import {
 import {
   parseCSV, profile, buildCube,
   queryBreakdown, queryTrend, queryTotal, queryTopK, queryDelta,
-  latestPeriod, findOutliers, drillLocalize, correlate,
+  latestPeriod, drillLocalize, correlate,
+  discoverInsights, classifyInsight,
 } from "./engine";
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -59,13 +60,14 @@ function parseIntent(text, schema) {
 
   // measure — match by name or common synonyms
   let measure = measures[0];
+  let measureExplicit = false;
   for (const m of measures) {
     const mn = m.toLowerCase();
-    if (q.includes(mn) || q.includes(mn.replace(/_/g," "))) { measure = m; break; }
+    if (q.includes(mn) || q.includes(mn.replace(/_/g," "))) { measure = m; measureExplicit = true; break; }
   }
-  if (/\b(sales|gmv|revenue|top ?line)\b/.test(q)) {
+  if (!measureExplicit && /\b(sales|gmv|revenue|top ?line)\b/.test(q)) {
     const rev = measures.find(m => /revenue|sales|gmv|value|amount/i.test(m));
-    if (rev) measure = rev;
+    if (rev) { measure = rev; measureExplicit = true; }
   }
 
   // dimension — match by name
@@ -111,7 +113,7 @@ function parseIntent(text, schema) {
   if (agent && ["drill","deepdive"].includes(agent) && !dimension) dimension = dims[0];
 
   const title = text.length > 52 ? text.slice(0,50)+"…" : text;
-  return { insight_type, agent, measure, dimension, grain, k, title };
+  return { insight_type, agent, measure, measureExplicit, dimension, grain, k, title };
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -230,117 +232,110 @@ function lookbackFor(grain) {
   return { day:30, week:16, month:12, quarter:8, year:5 }[grain] || 12;
 }
 
-/* ── AGENT (a): SCAN — survey everything, surface the top 3 notable ───────── */
+/* ════════════════════════════════════════════════════════════════════════
+   THE FOUR AGENTS — all built on discoverInsights() (one scoring engine).
+   Each agent traverses the scored cube and does something genuinely different
+   with the ranked results. No templated reports.
+   ════════════════════════════════════════════════════════════════════════ */
+
+// Build a chart for a discovered insight (cell → breakdown, cross → the pair)
+function chartForInsight(cube, ins) {
+  if (ins.kind === "cross") {
+    // show the dimA breakdown for context
+    return { type:"bar", data: queryBreakdown(cube, ins.dimA, ins.measure, ins.grain, ins.period) };
+  }
+  const bd = queryBreakdown(cube, ins.dim, ins.measure, ins.grain, ins.period);
+  return { type: bd.length<=5 ? "pie" : "bar", data: bd };
+}
+
+/* ── AGENT (a): SCAN — the top surprises across the WHOLE cube ─────────────── */
 async function agentScan(cube, intent, onStep) {
   const step = await stepper(onStep);
-  const measure = intent.measure;
   const grain = resolveGrain(cube, intent.grain);
-  const period = intent.period || null;   // null → latest inside engine
-  const dims = cube.meta.dims.map(d=>d.col);
-  let trace;
+  const period = intent.period || null;
 
-  await step("OBSERVE", "Survey all dimensions",
-    `Scanning ${dims.length} dimensions against ${measure} at ${grain} grain to find where variation concentrates.`);
+  await step("OBSERVE", "Traverse the entire cube",
+    `Walking every measure × dimension × cross-cell at ${grain} grain, scoring each for deviation.`);
 
-  // Collect ALL outliers across all dimensions, then take the global top 3
-  const all = [];
-  for (const dim of dims) {
-    const { outliers, mean } = findOutliers(cube, dim, measure, grain, period, 1.0);
-    for (const o of outliers) all.push({ dim, ...o, siblingMean: mean });
-  }
-  all.sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
-  const top3 = all.slice(0,3);
+  const { insights } = discoverInsights(cube, { grain, period });
 
-  await step("ORIENT", "Rank dimensions by anomaly strength",
-    top3.length
-      ? `Top signals: ${top3.map(f=>`${f.dim}=${f.label} (${f.z>0?"+":""}${f.z.toFixed(1)}σ)`).join(", ")}.`
-      : `No dimension shows a strong outlier — ${measure} is evenly distributed.`);
+  await step("ORIENT", "Rank by interestingness",
+    `Scored ${insights.length} cells across temporal, sibling and cross signals. Taking the strongest.`);
 
-  const top = top3[0];
-  await step("DECIDE", "Select the standout",
-    top ? `${top.dim}=${top.label} is the strongest of ${all.length} flagged cells.`
-        : `Presenting the top-level trend as the headline.`);
+  const top3 = insights.slice(0,3);
+  await step("DECIDE", "Select the headline surprises",
+    top3.length ? `Top: ${top3.map(t=>t.why.split(" ").slice(0,3).join(" ")).join(" · ")}` : `Nothing notable — the data is flat.`);
 
-  trace = await step("ACT", "Assemble overview + runner-ups",
-    top ? `Headline plus two runner-ups assembled for comparison.`
-        : `Overview assembled from total trend.`);
+  const head = top3[0];
+  const trace = await step("ACT", "Assemble discovery feed", `Surfacing the 3 strongest findings.`);
 
-  const chart_data = top ? queryBreakdown(cube, top.dim, measure, grain, period) : queryTrend(cube, measure, grain, lookbackFor(grain));
-  const summary = top
-    ? `Overview (top 3): ` + top3.map((f,i)=>
-        `${i+1}) ${f.dim}=${f.label} at ${fmtKpi(f.value)} (${Math.abs(f.z).toFixed(1)}σ ${f.z>0?"above":"below"} peers)`
-      ).join("; ") + `. Strongest lead: ${top.dim}=${top.label}.`
-    : `Overview: ${measure} is evenly spread across dimensions with no dominant outlier this period.`;
+  const chart = head ? chartForInsight(cube, head) : { type:"area", data: queryTrend(cube, cube.meta.measures[0].col, grain, lookbackFor(grain)) };
+  const summary = top3.length
+    ? `Cube scan — top 3 surprises: ` + top3.map((t,i)=>`${i+1}) ${t.why}`).join(" ")
+    : `No cell deviates enough to flag — the dataset looks uniform this period.`;
 
   return {
-    id:newId(), title:intent.title, insight_type:"scan", insightClass:"behavioral",
-    measure, dimension: top?.dim||null, grain, period,
-    chart_type: top?"bar":"area", chart_data,
-    kpi: top?top.value:queryTotal(cube,measure,grain,period).value,
-    delta:null, period_key: period || latestPeriod(cube,grain),
+    id:newId(), title:intent.title, insight_type:"scan",
+    insightClass: head ? classifyInsight(head) : "behavioral",
+    measure: head?.measure || cube.meta.measures[0].col,
+    dimension: head?.dim || head?.dimA || null, grain, period,
+    chart_type: chart.type, chart_data: chart.data,
+    kpi: head?.val ?? null, delta: head?.drop ?? null,
+    period_key: period || latestPeriod(cube,grain),
     findings: top3,
     summary, via:"agent", agent:"scan", trace,
   };
 }
 
-/* ── AGENT (b): DEEP-DIVE — one dim+measure across all grains ─────────────── */
+/* ── AGENT (b): DEEP-DIVE — one measure, ALL its surprises ranked ──────────── */
 async function agentDeepDive(cube, intent, onStep) {
   const step = await stepper(onStep);
-  const measure = intent.measure;
-  const dim = intent.dimension || cube.meta.dims[0]?.col;
   const grain = resolveGrain(cube, intent.grain);
   const period = intent.period || null;
-  let trace;
+  const measure = intent.measure;
 
-  await step("OBSERVE", `Load ${dim} × ${measure}`,
-    `Pulling ${measure} broken down by ${dim} at ${grain} grain as the base view.`);
+  await step("OBSERVE", `Focus the traversal on ${measure}`,
+    `Scanning every dimension and cross-cell, but only for ${measure}.`);
 
-  // Compare across whatever coarser grains the cube has
-  const grainsToCheck = ["month","quarter","year"].filter(g => Object.keys(cube.totals?.[g]||{}).length >= 2);
-  const grainViews = {};
-  for (const g of grainsToCheck) grainViews[g] = queryBreakdown(cube, dim, measure, g);
+  const { insights } = discoverInsights(cube, { grain, period });
+  const mine = insights.filter(i => i.measure === measure);
 
-  await step("ORIENT", "Compare across time grains",
-    `Computed ${dim} breakdown at ${grainsToCheck.join(", ")} to test whether the ranking holds across horizons.`);
+  await step("ORIENT", `Rank ${measure} findings`,
+    `${mine.length} ${measure} cells scored above threshold. Ranking by deviation.`);
 
-  // Rank stability of the leader across grains
-  const leaders = Object.entries(grainViews).map(([g,bd])=>({g, leader:bd[0]?.label}));
-  const stable = leaders.length>1 && leaders.every(l=>l.leader===leaders[0].leader);
-  await step("DECIDE", "Assess consistency",
-    stable ? `${leaders[0].leader} leads ${measure} at every grain — a durable pattern.`
-           : `The ${measure} leader shifts across grains — horizon-dependent.`);
+  const top3 = mine.slice(0,3);
+  await step("DECIDE", "Pick the sharpest signal",
+    top3.length ? `Sharpest: ${top3[0].why}` : `${measure} is stable across all dimensions.`);
 
-  trace = await step("ACT", "Build deep-dive (top 3)",
-    `Surfacing the ${grain}-grain breakdown with the top 3 values and the cross-grain note.`);
+  const head = top3[0];
+  const dim = head?.dim || head?.dimA || intent.dimension || cube.meta.dims[0]?.col;
+  const trace = await step("ACT", `Build ${measure} deep-dive`, `Surfacing the ${dim} breakdown behind the top finding.`);
 
   const bd = queryBreakdown(cube, dim, measure, grain, period);
-  const tot = bd.reduce((s,d)=>s+d.value,0);
-  const top3 = bd.slice(0,3);
-  const summary = bd.length
-    ? `Top 3 ${dim} by ${measure}: ` + top3.map((r,i)=>
-        `${i+1}) ${r.label} ${fmtKpi(r.value)} (${tot?((r.value/tot)*100).toFixed(0):0}%)`
-      ).join(", ") + `. ${stable?`Ranking holds across ${grainsToCheck.join("/")} — a stable structural pattern.`:`Note: leader shifts at coarser grains, so this is horizon-sensitive.`}`
-    : `No ${measure} data for ${dim}.`;
+  const summary = top3.length
+    ? `Deep-dive on ${measure} — top signals: ` + top3.map((t,i)=>`${i+1}) ${t.why}`).join(" ")
+    : `${measure} shows no strong deviation on any dimension this period — a stable measure.`;
 
   return {
-    id:newId(), title:intent.title, insight_type:"deepdive", insightClass:"behavioral",
+    id:newId(), title:intent.title, insight_type:"deepdive",
+    insightClass: head ? classifyInsight(head) : "behavioral",
     measure, dimension:dim, grain, period,
     chart_type: bd.length<=5?"pie":"bar", chart_data:bd,
-    kpi: tot, delta:null, period_key: period || latestPeriod(cube,grain),
+    kpi: bd.reduce((s,d)=>s+d.value,0), delta: head?.drop ?? null,
+    period_key: period || latestPeriod(cube,grain),
     findings: top3,
     summary, via:"agent", agent:"deepdive", trace,
   };
 }
 
-/* ── AGENT (c): DRILL — single-dim → multi-dim localization ───────────────── */
+/* ── AGENT (c): DRILL — take the top temporal drop, localize it via cross ──── */
 async function agentDrill(cube, intent, onStep) {
   const step = await stepper(onStep);
-  const measure = intent.measure;
   const grain = resolveGrain(cube, intent.grain);
-  let trace;
+  const measure = intent.measure;
 
+  // Probe: user period, else the period of the biggest total move
   const totalTrend = queryTrend(cube, measure, grain, lookbackFor(grain));
-  // If user pinned a period, probe that; else find the biggest total move
   let probe = intent.period, worstDrop = 0;
   if (!probe) {
     for (let i=1;i<totalTrend.length;i++){
@@ -350,32 +345,29 @@ async function agentDrill(cube, intent, onStep) {
     probe = probe || latestPeriod(cube,grain);
   }
 
-  await step("OBSERVE", `Locate the inflection in ${measure}`,
-    intent.period ? `Investigating the selected period ${probe}.`
-      : worstDrop ? `Biggest total move is at ${probe} (${(worstDrop*100).toFixed(1)}%). Investigating that period.`
-                  : `No sharp total move; examining ${probe}.`);
+  await step("OBSERVE", `Locate movement in ${measure}`,
+    intent.period ? `Investigating selected period ${probe}.`
+      : worstDrop ? `Biggest total move at ${probe} (${(worstDrop*100).toFixed(1)}%).` : `Examining ${probe}.`);
 
-  await step("ORIENT", "Drill down — test each dimension",
-    `Running outlier detection across every dimension at ${probe} to find where the movement concentrates.`);
+  await step("ORIENT", "Drill down — score every dimension at that period",
+    `Running the traversal at ${probe} to find which dimension localizes the movement.`);
 
   const drill = drillLocalize(cube, measure, grain, probe, { zThreshold:1.0 });
 
-  await step("DECIDE", "Drill across — narrow within the outlier",
+  await step("DECIDE", "Drill across into the outlier",
     drill.path.length>1
-      ? `${drill.path[0].dim}=${drill.path[0].value} is the primary driver. Drilling across into ${drill.path[1].dim} to localize further.`
-      : drill.path.length
-        ? `${drill.path[0].dim}=${drill.path[0].value} is the driver; no secondary dimension sharpens it.`
-        : `Movement is distributed — no single cell dominates.`);
+      ? `${drill.path[0].dim}=${drill.path[0].value} is primary; narrowing across ${drill.path[1].dim}.`
+      : drill.path.length ? `${drill.path[0].dim}=${drill.path[0].value} is the driver.` : `Movement is distributed.`);
 
-  trace = await step("ACT", "Confirm the localized cell",
-    drill.localized ? `Localized to: ${drill.localized}.` : `Could not localize to one cell — the effect is broad.`);
+  const trace = await step("ACT", "Confirm the localized cell",
+    drill.localized ? `Localized to: ${drill.localized}.` : `Could not localize — effect is broad.`);
 
   const focusDim = drill.path[0]?.dim, focusVal = drill.path[0]?.value;
   const chart_data = focusDim ? queryTrend(cube, measure, grain, lookbackFor(grain), focusDim, focusVal) : totalTrend;
 
   const summary = drill.path.length
     ? `Drill sequence: ${measure} movement at ${probe} localizes to ${drill.localized}. ` +
-      `${drill.path.length>1 ? `Single-dimension (${drill.path[0].dim}=${drill.path[0].value}) narrows further crossed with ${drill.path[1].dim}=${drill.path[1].value} — that intersection is the tightest explanation.` : `This dimension alone explains the shift.`}`
+      `${drill.path.length>1 ? `The single-dimension view narrows further crossed with ${drill.path[1].dim}=${drill.path[1].value} — the tightest explanation.` : `This dimension alone explains it.`}`
     : `${measure} moved at ${probe} but the cause is distributed across cells.`;
 
   return {
@@ -388,7 +380,7 @@ async function agentDrill(cube, intent, onStep) {
   };
 }
 
-/* ── AGENT (d): CORRELATE — find measures that move together + odd ones ───── */
+/* ── AGENT (d): CORRELATE — measures that move together + the odd cells ────── */
 async function agentCorrelate(cube, intent, onStep) {
   const step = await stepper(onStep);
   const measures = cube.meta.measures.map(m=>m.col);
@@ -397,10 +389,9 @@ async function agentCorrelate(cube, intent, onStep) {
   const grain = resolveGrain(cube, intent.grain);
   const period = intent.period || null;
   const dim = intent.dimension || dims[0];
-  let trace;
 
-  await step("OBSERVE", "Set up correlation matrix",
-    `Testing how ${anchor} co-moves with other measures across ${dim} at ${grain} grain.`);
+  await step("OBSERVE", "Correlate measures + scan for odd cells",
+    `Testing how ${anchor} co-moves with other measures across ${dim}, then pulling the traversal's outliers.`);
 
   const correlations = [];
   for (const m of measures) {
@@ -411,28 +402,23 @@ async function agentCorrelate(cube, intent, onStep) {
   correlations.sort((a,b)=>Math.abs(b.r)-Math.abs(a.r));
   const top3corr = correlations.slice(0,3);
 
-  await step("ORIENT", "Rank by correlation strength (top 3)",
-    top3corr.length
-      ? top3corr.map(c=>`${anchor}↔${c.measure} r=${c.r.toFixed(2)}`).join(", ")
-      : `Only one measure — no cross-measure correlation possible.`);
+  await step("ORIENT", "Rank correlations",
+    top3corr.length ? top3corr.map(c=>`${anchor}↔${c.measure} r=${c.r.toFixed(2)}`).join(", ") : `Only one measure — no correlation.`);
 
-  const { outliers } = findOutliers(cube, dim, anchor, grain, period, 1.0);
-  const top3odd = outliers.slice(0,3);
-  await step("DECIDE", "Find the odd ones (top 3)",
-    top3odd.length
-      ? `Outliers breaking the pattern: ${top3odd.map(o=>`${o.label} (${o.z>0?"+":""}${o.z.toFixed(1)}σ)`).join(", ")}.`
-      : `No ${dim} breaks the ${anchor} pattern — the relationship is uniform.`);
+  // Odd ones = the anchor-measure outliers the traversal already found
+  const { insights } = discoverInsights(cube, { grain, period });
+  const odd = insights.filter(i => i.measure===anchor && i.kind==="cell" && Math.abs(i.sibZ)>=1.0)
+    .slice(0,3);
 
-  trace = await step("ACT", "Assemble correlation insight",
-    `Pairing the top correlations with the flagged outliers.`);
+  await step("DECIDE", "Find the odd ones",
+    odd.length ? `Outliers: ${odd.map(o=>`${o.dim}=${o.value} (${o.sibZ>0?"+":""}${o.sibZ.toFixed(1)}σ)`).join(", ")}` : `No cell breaks the ${anchor} pattern.`);
 
-  const top = top3corr[0];
+  const trace = await step("ACT", "Assemble correlation insight", `Pairing top correlations with flagged outliers.`);
+
   const chart_data = queryBreakdown(cube, dim, anchor, grain, period);
-  const oddTxt = top3odd.length ? ` Odd ones out: ${top3odd.map(o=>`${o.label} (${Math.abs(o.z).toFixed(1)}σ)`).join(", ")}.` : "";
-  const corrTxt = top
-    ? `Top correlations with ${anchor}: ` + top3corr.map(c=>
-        `${c.measure} (r=${c.r.toFixed(2)}, ${Math.abs(c.r)>0.7?"strong":Math.abs(c.r)>0.4?"moderate":"weak"})`
-      ).join(", ") + `.`
+  const oddTxt = odd.length ? ` Odd ones out: ${odd.map(o=>`${o.dim}=${o.value} (${Math.abs(o.sibZ).toFixed(1)}σ)`).join(", ")}.` : "";
+  const corrTxt = top3corr.length
+    ? `Top correlations with ${anchor}: ` + top3corr.map(c=>`${c.measure} (r=${c.r.toFixed(2)}, ${Math.abs(c.r)>0.7?"strong":Math.abs(c.r)>0.4?"moderate":"weak"})`).join(", ") + `.`
     : `Only one measure available — no cross-measure correlation possible.`;
 
   return {
@@ -441,7 +427,7 @@ async function agentCorrelate(cube, intent, onStep) {
     chart_type:"bar", chart_data,
     kpi: chart_data.reduce((s,d)=>s+d.value,0), delta:null,
     period_key: period || latestPeriod(cube,grain),
-    correlations:top3corr, outliers:top3odd,
+    correlations:top3corr, findings:odd,
     summary: corrTxt + oddTxt, via:"agent", agent:"correlate", trace,
   };
 }
@@ -901,6 +887,33 @@ export default function App() {
 
   const handleReady = useCallback(({ cube, schema, fileName })=>{
     setCube(cube); setSchema(schema); setFileName(fileName); setScreen("app");
+    // AUTO-DISCOVERY: the moment the cube is built, traverse it and surface the
+    // strongest insights as cards — no query needed. This is the "connect → insights
+    // immediately" behavior.
+    try {
+      const { grain, period, insights } = discoverInsights(cube, {});
+      const top = insights.slice(0, 6);
+      const cards = top.map(ins => {
+        const isCross = ins.kind === "cross";
+        const dim = ins.dim || ins.dimA;
+        const bd = queryBreakdown(cube, dim, ins.measure, grain, period);
+        return {
+          id: Math.random().toString(36).slice(2,8),
+          title: isCross
+            ? `${ins.dimA}×${ins.dimB} surprise · ${ins.measure}`
+            : `${dim}=${ins.value} stands out · ${ins.measure}`,
+          insight_type: "discovered",
+          insightClass: classifyInsight(ins),
+          measure: ins.measure, dimension: dim, grain, period,
+          chart_type: bd.length<=5 ? "pie" : "bar", chart_data: bd,
+          kpi: ins.val, delta: ins.drop ?? null,
+          period_key: period,
+          summary: ins.why,
+          via: "discovery", score: ins.score,
+        };
+      });
+      setCards(cards);
+    } catch(e) { console.warn("discovery failed:", e); }
   },[]);
 
   // Suggestions built from the ACTUAL schema — mix of fast + all 4 agents
@@ -923,8 +936,9 @@ export default function App() {
     const q=(text||query).trim(); if(!q || !cube) return;
     setLoading(true); setQuery(""); setAgentTrace(null);
     const intent = parseIntent(q, schema);
-    // User selections override the parsed intent (explicit beats inferred)
-    if (selMeasure) intent.measure = selMeasure;
+    // Focus overrides ONLY when the query itself didn't name a measure.
+    // (An explicit query like "deep dive revenue" beats a sticky focus of discount.)
+    if (selMeasure && !intent.measureExplicit) intent.measure = selMeasure;
     if (selPeriod)  { intent.period = selPeriod; intent.grain = selGrain; }
     const route  = routeQuery(intent);
 
@@ -1165,11 +1179,29 @@ export default function App() {
         <main style={{ flex:1, minWidth:0, padding: isMobile ? "16px 14px 72px" : "20px 24px", overflowY:"auto", width:"100%" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
             <span style={{ fontSize:9, letterSpacing:"2px", textTransform:"uppercase", color:T.textDim, fontWeight:600 }}>
-              Insights — {cards.length} generated
+              Insights — {cards.length} {cards.some(c=>c.via==="discovery")?"discovered":"generated"}
             </span>
-            {cards.length>0 && (
-              <span onClick={()=>setCards([])} style={{ fontSize:11, color:T.textDim, cursor:"pointer" }}>Clear all</span>
-            )}
+            <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+              <span onClick={()=>{
+                  const { grain, period, insights } = discoverInsights(cube, {});
+                  const top = insights.slice(0,6).map(ins=>{
+                    const dim = ins.dim || ins.dimA;
+                    const bd = queryBreakdown(cube, dim, ins.measure, grain, period);
+                    return { id:Math.random().toString(36).slice(2,8),
+                      title: ins.kind==="cross" ? `${ins.dimA}×${ins.dimB} surprise · ${ins.measure}` : `${dim}=${ins.value} stands out · ${ins.measure}`,
+                      insight_type:"discovered", insightClass:classifyInsight(ins),
+                      measure:ins.measure, dimension:dim, grain, period,
+                      chart_type: bd.length<=5?"pie":"bar", chart_data:bd,
+                      kpi:ins.val, delta:ins.drop??null, period_key:period,
+                      summary:ins.why, via:"discovery", score:ins.score };
+                  });
+                  setCards(top);
+                }}
+                style={{ fontSize:11, color:T.purple, cursor:"pointer" }}>✦ Re-scan cube</span>
+              {cards.length>0 && (
+                <span onClick={()=>setCards([])} style={{ fontSize:11, color:T.textDim, cursor:"pointer" }}>Clear all</span>
+              )}
+            </div>
           </div>
 
           {/* Live agent trace */}
