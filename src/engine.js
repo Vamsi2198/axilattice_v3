@@ -630,4 +630,51 @@ export function classifyInsight(ins) {
   return "behavioral";
 }
 
+/* PROFILE ONE DIMENSION EXHAUSTIVELY.
+   For a measure × dimension, walk EVERY distinct value inside that dimension and
+   compute its true deviation. Within a single dimension the members are directly
+   comparable, so the sibling z-score is statistically clean (unlike comparing
+   z-scores across different dimensions). This is the deep-dive primitive. */
+export function profileDimension(cube, dim, measure, grain, period) {
+  const pk = period || latestPeriod(cube, grain);
+  const bd = queryBreakdown(cube, dim, measure, grain, pk);
+  if (!bd.length) return { members: [], mean: null, std: null, total: 0, dim, measure, grain, period: pk };
+
+  const vals  = bd.map(b => b.value);
+  const total = vals.reduce((a,b)=>a+b,0);
+  const mean  = total / vals.length;
+  const std   = Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length);
+
+  const members = bd.map((b, i) => {
+    const temp = temporalScore(cube, dim, b.label, measure, grain);
+    const sibZ = std ? (b.value - mean)/std : 0;
+    return {
+      label: b.label,
+      value: b.value,
+      share: total ? b.value/total : 0,
+      sibZ,
+      tempZ: temp.z,
+      drop:  temp.drop,
+      rankByValue: i + 1,
+      deviation: Math.abs(sibZ) + Math.abs(temp.z)*0.8 + Math.abs(temp.drop)*3,
+    };
+  });
+
+  return { members, mean, std, total, dim, measure, grain, period: pk };
+}
+
+/* Correct headline number for a card: SUM for additive measures, AVERAGE for
+   rate measures (margin %, ratings, durations). Uses the cube's own totals
+   bucket, which stores true sum and count. */
+export function cardKpi(cube, measure, grain, period) {
+  const r = queryTotal(cube, measure, grain, period);
+  return r ? r.value : null;
+}
+
+/* Flag correlations that are almost certainly arithmetic, not insight —
+   e.g. discount derived as a % of revenue will correlate at ~1.00. */
+export function isLikelyDerived(r) {
+  return r != null && Math.abs(r) >= 0.985;
+}
+
 export { latestPeriod, allPeriods, isRateMeasure };
